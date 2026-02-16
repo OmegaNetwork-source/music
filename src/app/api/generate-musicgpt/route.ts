@@ -5,9 +5,10 @@ export async function POST(req: NextRequest) {
   try {
     const apiKey = process.env.MUSICGPT_API_KEY;
 
-    // DEBUG: Log environment keys to seeing what's actually loaded
-    console.log("Environment Keys Available:", Object.keys(process.env));
-    console.log("Is API Key present?", !!apiKey);
+    // FORCING LOGS TO RENDER
+    console.error("DEBUG: Request received at /api/generate-musicgpt");
+    console.error("DEBUG: Keys in process.env:", Object.keys(process.env).join(", "));
+    console.error("DEBUG: MUSICGPT_API_KEY found?", !!apiKey);
 
     if (!apiKey) {
       return NextResponse.json(

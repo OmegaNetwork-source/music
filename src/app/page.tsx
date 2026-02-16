@@ -128,9 +128,12 @@ export default function Home() {
           makeInstrumental: !lyrics.trim(),
         }),
       });
+
       const musicGptData = await musicGptRes.json();
+      console.log("CLIENT DEBUG: MusicGPT Response:", musicGptData);
 
       if (!musicGptRes.ok || !musicGptData.success) {
+        console.error("CLIENT DEBUG: MusicGPT Error:", musicGptData);
         throw new Error(musicGptData.error || "MusicGPT did not return a task");
       }
 
@@ -307,11 +310,6 @@ export default function Home() {
               ))}
             </div>
           </div>
-
-          {/* Wallet Connect Button Placeholder */}
-          {/* <div className="p-4 border-t border-white/10">
-               <WalletMultiButton className="w-full !bg-purple-600 hover:!bg-purple-700 !rounded-2xl !h-12 !font-bold" />
-            </div> */}
         </div>
       </aside>
 
@@ -467,7 +465,6 @@ export default function Home() {
                       )}
                     </span>
                   </button>
-                  <p className="mt-4 text-center text-xs text-white/30">Free Preview • 50¢ USDC for Full Quality</p>
                 </div>
               </div>
             </div>
@@ -527,9 +524,6 @@ export default function Home() {
                           Load
                         </button>
                       </div>
-                      <button className="w-full mt-2 py-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 text-xs font-bold text-indigo-300 transition-colors">
-                        Unlock Full Quality (0.50 USDC)
-                      </button>
                     </div>
                   ))
                 )}
