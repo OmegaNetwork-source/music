@@ -1,21 +1,17 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
+
+// Dynamically import wallet components to avoid SSR issues
+const WalletMultiButton = dynamic(
+  async () => (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
+  { ssr: false }
+);
 
 const GENRES = [
-  "Pop",
-  "Rock",
-  "Hip-Hop",
-  "Electronic",
-  "R&B",
-  "Jazz",
-  "Country",
-  "Indie",
-  "Classical",
-  "Lo-fi",
-  "K-Pop",
-  "Metal",
-  "Reggae",
+  "Pop", "Rock", "Hip-Hop", "Electronic", "R&B", "Jazz",
+  "Country", "Indie", "Classical", "Lo-fi", "K-Pop", "Metal", "Reggae"
 ];
 
 export default function Home() {
@@ -24,28 +20,28 @@ export default function Home() {
   const [stylePrompt, setStylePrompt] = useState("");
   const [theme, setTheme] = useState("");
   const [mood, setMood] = useState("");
-  const DURATION = 60;
-  const [opacity, setOpacity] = useState(100);
-  const [blur, setBlur] = useState(22);
-  const [translucency, setTranslucency] = useState(50);
-  const [specular, setSpecular] = useState(true);
-  const [blurOn, setBlurOn] = useState(true);
-  const [translucencyOn, setTranslucencyOn] = useState(true);
+
   const [generatingLyrics, setGeneratingLyrics] = useState(false);
   const [generatingMusic, setGeneratingMusic] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [trackName, setTrackName] = useState("Untitled");
   const [error, setError] = useState<string | null>(null);
   const [debugLog, setDebugLog] = useState<string[]>([]);
+
   const [library, setLibrary] = useState<{ id: string; name: string; audioUrl: string }[]>([]);
   const [lastGeneratedTracks, setLastGeneratedTracks] = useState<{ id: string; name: string; audioUrl: string }[]>([]);
+
   const [progressStatus, setProgressStatus] = useState<string>("");
   const [progressPercent, setProgressPercent] = useState(0);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressStartRef = useRef(0);
   const progressEtaRef = useRef(120);
 
-  /* New state for typing animation */
+  /* Mobile State */
+  const [showGenres, setShowGenres] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  /* Typing animation state */
   const [placeholderText, setPlaceholderText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
 
@@ -67,7 +63,7 @@ export default function Home() {
             timeout = setTimeout(step, 100);
           } else {
             direction = -1;
-            timeout = setTimeout(step, 2000); // Checkpoint: Wait before deleting
+            timeout = setTimeout(step, 2000);
           }
         } else {
           if (i >= 0) {
@@ -76,7 +72,7 @@ export default function Home() {
             timeout = setTimeout(step, 50);
           } else {
             direction = 1;
-            timeout = setTimeout(step, 500); // Checkpoint: Wait before retyping
+            timeout = setTimeout(step, 500);
           }
         }
       };
@@ -160,7 +156,6 @@ export default function Home() {
 
       const pollIntervalMs = 5000;
 
-      // Start progress simulation
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = setInterval(() => {
         const elapsed = (Date.now() - progressStartRef.current) / 1000;
@@ -175,7 +170,6 @@ export default function Home() {
         );
       }, 1500);
 
-      // Helper to poll a specific ID
       const pollId = async (id: string, isPrimary: boolean): Promise<string | null> => {
         try {
           while (true) {
@@ -185,7 +179,6 @@ export default function Home() {
             const statusData = await statusRes.json();
 
             if (!statusData.success && statusData.error) {
-              // Be tolerant of temporary DB/connection errors
               if (/Failed to connect to DB|HTTP_ERROR/i.test(statusData.error)) {
                 await new Promise((r) => setTimeout(r, 5000));
                 continue;
@@ -197,13 +190,9 @@ export default function Home() {
               return statusData.audioUrl;
             }
             if (statusData.status === "failed" || statusData.status === "cancelled") {
-              // If it's the primary track, we throw to alert the user. 
-              // If secondary, we just return null to skip it.
               if (isPrimary) throw new Error(statusData.error || "Generation failed");
               return null;
             }
-
-            // Wait and retry
             await new Promise((r) => setTimeout(r, pollIntervalMs));
           }
         } catch (e) {
@@ -212,19 +201,15 @@ export default function Home() {
         }
       };
 
-      // Poll the first ID to drive UI feedback
       const primaryUrl = await pollId(ids[0], true);
 
-      // Stop progress once primary is done
       stopProgress();
       setProgressPercent(100);
       setProgressStatus("Finalizing variations...");
 
-      // Collect results
       const successUrls: string[] = [];
       if (primaryUrl) successUrls.push(primaryUrl);
 
-      // Poll others if any (conceptually they are running in parallel, so this should be fast)
       if (ids.length > 1) {
         const secondaryPromises = ids.slice(1).map(id => pollId(id, false));
         const secondaryResults = await Promise.all(secondaryPromises);
@@ -237,7 +222,6 @@ export default function Home() {
         throw new Error("Generation failed for all variations.");
       }
 
-      // Add to library
       const newTracks = successUrls.map((url, i) => ({
         id: crypto.randomUUID(),
         name: ids.length > 1 ? `${trackName} (Ver ${i + 1})` : trackName || "Untitled",
@@ -265,45 +249,85 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen overflow-hidden text-white font-sans selection:bg-pink-500/30">
+    <div className="flex flex-col md:flex-row min-h-screen overflow-hidden text-white font-sans selection:bg-pink-500/30">
 
-      {/* Sidebar - Genres */}
-      <aside className="glass-panel relative z-10 flex w-72 flex-col border-r-0 my-4 ml-4">
-        <div className="flex items-center gap-3 px-6 py-6 border-b border-white/10">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-violet-600 animate-glow" />
-          <h2 className="text-xl font-bold tracking-tight">Music Studio</h2>
+      {/* Mobile Header */}
+      <div className="md:hidden flex items-center justify-between p-4 bg-black/40 backdrop-blur-xl border-b border-white/10 z-50 sticky top-0">
+        <button
+          onClick={() => setShowGenres(!showGenres)}
+          className="p-2 rounded-lg bg-white/5 border border-white/10"
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+
+        <div className="flex items-center gap-2">
+          <div className="h-6 w-6 rounded-full bg-gradient-to-br from-pink-500 to-violet-600 animate-glow" />
+          <span className="font-bold text-lg">Music Studio</span>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-          <div className="mb-3 px-2">
-            <span className="text-xs font-bold uppercase tracking-widest text-white/40">Vibe Selection</span>
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="p-2 rounded-lg bg-white/5 border border-white/10 relative"
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          {library.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-pink-500 rounded-full" />}
+        </button>
+      </div>
+
+      {/* Sidebar - Genres (Desktop: Static, Mobile: Fixed Overlay) */}
+      <aside className={`
+        fixed inset-0 z-40 bg-black/95 backdrop-blur-xl transition-transform duration-300 md:translate-x-0 md:relative md:bg-transparent md:backdrop-blur-none md:z-10 md:flex md:w-72 md:flex-col md:border-r-0 md:my-4 md:ml-4
+        ${showGenres ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        {/* Mobile Close Button */}
+        <div className="md:hidden p-4 flex justify-end">
+          <button onClick={() => setShowGenres(false)} className="p-2 text-white/60">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <div className="glass-panel w-full h-full flex flex-col md:rounded-3xl border-none md:border-solid">
+          <div className="hidden md:flex items-center gap-3 px-6 py-6 border-b border-white/10">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-violet-600 animate-glow" />
+            <h2 className="text-xl font-bold tracking-tight">Music Studio</h2>
           </div>
-          <div className="space-y-1">
-            {GENRES.map((g) => (
-              <button
-                key={g}
-                onClick={() => setGenre(g)}
-                className={`group flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition-all duration-300 ${genre === g
-                    ? "bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] border border-white/10"
-                    : "text-white/60 hover:bg-white/5 hover:text-white"
-                  }`}
-              >
-                <span className={`h-2 w-2 shrink-0 rounded-full transition-all duration-300 ${genre === g ? "bg-pink-500 scale-125 shadow-[0_0_10px_#ec4899]" : "bg-white/20"
-                  }`} />
-                {g}
-              </button>
-            ))}
+
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            <div className="mb-3 px-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-white/40">Vibe Selection</span>
+            </div>
+            <div className="space-y-1">
+              {GENRES.map((g) => (
+                <button
+                  key={g}
+                  onClick={() => { setGenre(g); setShowGenres(false); }}
+                  className={`group flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition-all duration-300 ${genre === g
+                      ? "bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] border border-white/10"
+                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                    }`}
+                >
+                  <span className={`h-2 w-2 shrink-0 rounded-full transition-all duration-300 ${genre === g ? "bg-pink-500 scale-125 shadow-[0_0_10px_#ec4899]" : "bg-white/20"
+                    }`} />
+                  {g}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Wallet Connect Button Placeholder */}
+          {/* <div className="p-4 border-t border-white/10">
+               <WalletMultiButton className="w-full !bg-purple-600 hover:!bg-purple-700 !rounded-2xl !h-12 !font-bold" />
+            </div> */}
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="relative z-10 flex flex-1 flex-col p-4 h-screen overflow-hidden">
-        <div className="glass-panel flex flex-1 flex-col overflow-hidden shadow-2xl mx-2">
+      <main className="relative z-10 flex flex-1 flex-col p-2 md:p-4 md:h-screen md:overflow-hidden">
+        <div className="glass-panel flex flex-1 flex-col overflow-hidden shadow-2xl md:mx-2 min-h-[calc(100vh-100px)]">
 
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/10 px-8 py-6 backdrop-blur-xl">
-            <div className="min-w-0 flex-1 relative">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/10 px-6 py-6 backdrop-blur-xl gap-4">
+            <div className="min-w-0 flex-1 relative w-full">
               <div className="relative">
                 <input
                   type="text"
@@ -318,33 +342,33 @@ export default function Home() {
                       setIsTyping(true);
                     }
                   }}
-                  className="w-full max-w-md bg-transparent text-3xl font-bold text-white placeholder-white/20 focus:outline-none tracking-tight relative z-10"
+                  className="w-full max-w-md bg-transparent text-2xl md:text-3xl font-bold text-white placeholder-white/20 focus:outline-none tracking-tight relative z-10"
                 />
                 {isTyping && trackName === "Untitled" && (
-                  <div className="absolute top-0 left-0 pointer-events-none text-3xl font-bold text-white/30 typing-animation">
+                  <div className="absolute top-0 left-0 pointer-events-none text-2xl md:text-3xl font-bold text-white/30 typing-animation truncate max-w-full">
                     {placeholderText}
                   </div>
                 )}
               </div>
-              <p className="mt-1 text-sm font-medium text-white/50">AI Music Generation • {genre || "Custom Style"}</p>
+              <p className="mt-1 text-xs md:text-sm font-medium text-white/50">AI Music Generation • {genre || "Custom Style"}</p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="px-4 py-2 rounded-full bg-black/20 border border-white/5 text-xs font-mono text-white/70">
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="px-4 py-2 rounded-full bg-black/20 border border-white/5 text-xs font-mono text-white/70 shadow-sm flex-1 md:flex-none text-center">
                 BPM: AUTO
               </div>
             </div>
           </div>
 
-          <div className="flex flex-1 flex-row overflow-hidden">
+          <div className="flex flex-1 flex-row overflow-hidden relative">
             {/* Center Input Area */}
-            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-              <div className="max-w-3xl mx-auto space-y-8">
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-24 md:pb-8">
+              <div className="max-w-3xl mx-auto space-y-6 md:space-y-8">
 
                 {/* Lyrics Section */}
                 <section className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-white/90 flex items-center gap-2">
+                    <h3 className="text-base md:text-lg font-semibold text-white/90 flex items-center gap-2">
                       <svg className="w-5 h-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
                       Lyrics & Content
                     </h3>
@@ -353,12 +377,12 @@ export default function Home() {
                       disabled={generatingLyrics}
                       className="text-xs font-bold text-pink-400 hover:text-pink-300 transition-colors uppercase tracking-wide disabled:opacity-50"
                     >
-                      {generatingLyrics ? "Writing..." : "+ Auto-Write Lyrics"}
+                      {generatingLyrics ? "Writing..." : "+ Auto-Write"}
                     </button>
                   </div>
 
-                  {/* Lyrics Controls */}
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                  {/* Lyrics Controls - Stack on mobile, grid on desktop */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-white/40 uppercase tracking-widest pl-1">Theme</label>
                       <input
@@ -384,8 +408,8 @@ export default function Home() {
                       value={lyrics}
                       onChange={(e) => setLyrics(e.target.value)}
                       placeholder="Enter your lyrics here..."
-                      rows={8}
-                      className="w-full bg-transparent p-6 text-base leading-relaxed text-white placeholder-white/20 resize-none focus:outline-none custom-scrollbar"
+                      rows={6}
+                      className="w-full bg-transparent p-4 md:p-6 text-sm md:text-base leading-relaxed text-white placeholder-white/20 resize-none focus:outline-none custom-scrollbar"
                     />
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 opacity-0 group-focus-within:opacity-100 transition-opacity" />
                   </div>
@@ -393,7 +417,7 @@ export default function Home() {
 
                 {/* Style Section */}
                 <section className="space-y-4">
-                  <h3 className="text-lg font-semibold text-white/90 flex items-center gap-2">
+                  <h3 className="text-base md:text-lg font-semibold text-white/90 flex items-center gap-2">
                     <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
                     Musical Style
                   </h3>
@@ -401,14 +425,14 @@ export default function Home() {
                     <input
                       value={stylePrompt}
                       onChange={(e) => setStylePrompt(e.target.value)}
-                      placeholder="Describe the sound (e.g. '80s synthwave with heavy bass')"
-                      className="glass-input w-full px-4 py-4 text-lg font-medium placeholder-white/20"
+                      placeholder="e.g. '80s synthwave'"
+                      className="glass-input w-full px-4 py-4 text-base md:text-lg font-medium placeholder-white/20"
                     />
                   </div>
                 </section>
 
                 {/* Generation Area */}
-                <div className="pt-4">
+                <div className="pt-4 pb-8">
                   {error && (
                     <div className="mb-6 p-4 rounded-2xl bg-red-500/20 border border-red-500/30 text-red-200 text-sm backdrop-blur-md">
                       ⚠️ {error}
@@ -433,7 +457,7 @@ export default function Home() {
                   <button
                     onClick={handleGenerateMusic}
                     disabled={generatingMusic || (!lyrics?.trim() && !stylePrompt && !genre)}
-                    className="liquid-button liquid-button-primary w-full py-5 text-xl font-bold tracking-wide disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+                    className="liquid-button liquid-button-primary w-full py-4 md:py-5 text-lg md:text-xl font-bold tracking-wide disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
                   >
                     <span className="relative z-10 flex items-center justify-center gap-3">
                       {generatingMusic ? (
@@ -444,20 +468,33 @@ export default function Home() {
                       ) : (
                         <>
                           <span>Generate Track</span>
-                          <svg className="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                          <svg className="w-5 h-5 md:w-6 md:h-6 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         </>
                       )}
                     </span>
                   </button>
+                  <p className="mt-4 text-center text-xs text-white/30">Free Preview • 50¢ USDC for Full Quality</p>
                 </div>
               </div>
             </div>
 
-            {/* Right Sidebar - History included in main panel for better glassy feel */}
-            <div className="w-80 border-l border-white/10 bg-black/10 flex flex-col">
-              <div className="p-6 border-b border-white/10">
+            {/* Right Sidebar - History (Desktop: Static, Mobile: Fixed Overlay) */}
+            <aside className={`
+               fixed inset-0 z-40 bg-black/95 backdrop-blur-xl transition-transform duration-300 md:translate-x-0 md:relative md:bg-gray-50/5 md:backdrop-blur-none md:z-auto md:w-80 md:flex md:flex-col md:border-l md:border-white/10
+               ${showHistory ? 'translate-x-0' : 'translate-x-full'}
+            `}>
+              {/* Mobile Header for History */}
+              <div className="md:hidden flex items-center justify-between p-4 border-b border-white/10">
+                <h3 className="text-lg font-bold text-white">Your History</h3>
+                <button onClick={() => setShowHistory(false)} className="p-2 text-white/60">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              <div className="hidden md:block p-6 border-b border-white/10">
                 <h3 className="text-sm font-bold uppercase tracking-widest text-white/60">History</h3>
               </div>
+
               <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                 {library.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-white/20 space-y-4">
@@ -473,34 +510,37 @@ export default function Home() {
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white shadow-lg">
                           🎵
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <h4 className="text-sm font-bold text-white truncate">{track.name}</h4>
                           <p className="text-[10px] uppercase tracking-wider text-white/40">Generated</p>
                         </div>
                       </div>
 
-                      <audio className="w-full h-6 mb-3 opacity-60 hover:opacity-100 transition-opacity" controls src={track.audioUrl} />
+                      <audio className="w-full h-8 mb-3 opacity-80 hover:opacity-100 transition-opacity" controls src={track.audioUrl} />
 
                       <div className="flex gap-2">
                         <a
                           href={track.audioUrl}
                           download={`${track.name.replace(/\s+/g, '_')}.mp3`}
-                          className="flex-1 py-1.5 rounded-lg bg-white/5 hover:bg-white/20 text-xs font-semibold text-center text-white/70 hover:text-white transition-colors"
+                          className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/20 text-xs font-semibold text-center text-white/70 hover:text-white transition-colors"
                         >
                           Download
                         </a>
                         <button
                           onClick={() => setLastGeneratedTracks([track])}
-                          className="flex-1 py-1.5 rounded-lg bg-pink-500/20 hover:bg-pink-500/40 text-xs font-semibold text-center text-pink-300 hover:text-white transition-colors"
+                          className="flex-1 py-2 rounded-lg bg-pink-500/20 hover:bg-pink-500/40 text-xs font-semibold text-center text-pink-300 hover:text-white transition-colors"
                         >
                           Load
                         </button>
                       </div>
+                      <button className="w-full mt-2 py-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 text-xs font-bold text-indigo-300 transition-colors">
+                        Unlock Full Quality (0.50 USDC)
+                      </button>
                     </div>
                   ))
                 )}
               </div>
-            </div>
+            </aside>
 
           </div>
         </div>
