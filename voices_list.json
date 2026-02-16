@@ -1,0 +1,605 @@
+﻿{
+    "success":  true,
+    "voices":  [
+                   {
+                       "voice_id":  "3acdd66e-7960-4b10-87b1-fd43d7a4e234",
+                       "voice_name":  "Bruno Mars"
+                   },
+                   {
+                       "voice_id":  "TheWeeknd",
+                       "voice_name":  "The Weeknd"
+                   },
+                   {
+                       "voice_id":  "EdSheeran",
+                       "voice_name":  "Ed Sheeran"
+                   },
+                   {
+                       "voice_id":  "j2ensc4pxu",
+                       "voice_name":  "Lady Gaga"
+                   },
+                   {
+                       "voice_id":  "ChrisMartin",
+                       "voice_name":  "Chris Martin"
+                   },
+                   {
+                       "voice_id":  "BillieEilish",
+                       "voice_name":  "Billie Eilish"
+                   },
+                   {
+                       "voice_id":  "3414ee31-6606-47bd-b00e-599e49f48030",
+                       "voice_name":  "Rihanna"
+                   },
+                   {
+                       "voice_id":  "8d639213-df45-4d80-98e0-008d8e1ce4b5",
+                       "voice_name":  "Justin Bieber"
+                   },
+                   {
+                       "voice_id":  "TaylorSwift",
+                       "voice_name":  "Taylor Swift"
+                   },
+                   {
+                       "voice_id":  "d0896e8a-6fde-44db-9575-d297146b7615",
+                       "voice_name":  "Taylor Swift"
+                   },
+                   {
+                       "voice_id":  "12d006da-5ea4-4ffe-bb4c-b2c46ec0b32e",
+                       "voice_name":  "Charlie Puth"
+                   },
+                   {
+                       "voice_id":  "KendrickLamar",
+                       "voice_name":  "Kendrick Lamar"
+                   },
+                   {
+                       "voice_id":  "Drake",
+                       "voice_name":  "Drake"
+                   },
+                   {
+                       "voice_id":  "ArianaGrande",
+                       "voice_name":  "Ariana Grande"
+                   },
+                   {
+                       "voice_id":  "au97budf78",
+                       "voice_name":  "Michael Jackson"
+                   },
+                   {
+                       "voice_id":  "gxk66ka6cp",
+                       "voice_name":  "Donald Trump"
+                   },
+                   {
+                       "voice_id":  "9f65092b-05b6-4eae-800f-2253b217b1ae",
+                       "voice_name":  "SZA"
+                   },
+                   {
+                       "voice_id":  "29ae514e-cbfc-4788-9783-601dd6b9ae11",
+                       "voice_name":  "Calvin Harris"
+                   },
+                   {
+                       "voice_id":  "y8bg492q9r",
+                       "voice_name":  "Mr Beast"
+                   },
+                   {
+                       "voice_id":  "61366b5b-6178-4087-8279-d5e84e7f8c3a",
+                       "voice_name":  "Adam Levine"
+                   },
+                   {
+                       "voice_id":  "SabrinaCarpenter",
+                       "voice_name":  "Sabrina Carpenter"
+                   },
+                   {
+                       "voice_id":  "cb03e743-3338-4ebe-a852-8328a327da23",
+                       "voice_name":  "Shawn Mendes"
+                   },
+                   {
+                       "voice_id":  "f80a30db-48b8-4dbf-8753-70dacd6930ac",
+                       "voice_name":  "J Balvin"
+                   },
+                   {
+                       "voice_id":  "0ac4649c-68da-4ddc-b402-f49c26c9bc5d",
+                       "voice_name":  "Adele"
+                   },
+                   {
+                       "voice_id":  "DuaLipa",
+                       "voice_name":  "Dua Lipa"
+                   },
+                   {
+                       "voice_id":  "3932c32b-25a2-44d1-bdb1-2a1d3996bf59",
+                       "voice_name":  "Katy Perry"
+                   },
+                   {
+                       "voice_id":  "c4c136ca-760a-4796-b3fb-81c9d0502dd7",
+                       "voice_name":  "Katy Perry"
+                   },
+                   {
+                       "voice_id":  "c706b9e8-7c65-4e26-b4fe-bf13e67e975c",
+                       "voice_name":  "Jungkook"
+                   },
+                   {
+                       "voice_id":  "CharliePuth",
+                       "voice_name":  "Charlie Puth"
+                   },
+                   {
+                       "voice_id":  "TravisScott",
+                       "voice_name":  "Travis Scott"
+                   },
+                   {
+                       "voice_id":  "ccf5c60f-baf7-4992-9eb1-a57f22f67fd5",
+                       "voice_name":  "Ellie Goulding"
+                   },
+                   {
+                       "voice_id":  "PewDiePie",
+                       "voice_name":  "PewDiePie"
+                   },
+                   {
+                       "voice_id":  "PostMalone",
+                       "voice_name":  "Post Malone"
+                   },
+                   {
+                       "voice_id":  "SelenaGomez",
+                       "voice_name":  "Selena Gomez"
+                   },
+                   {
+                       "voice_id":  "CamilaCabello",
+                       "voice_name":  "Camila Cabello"
+                   },
+                   {
+                       "voice_id":  "6f29f8c0-9c94-44e2-9fd0-d329bea3b9dc",
+                       "voice_name":  "Shawn Mendes"
+                   },
+                   {
+                       "voice_id":  "Eminem",
+                       "voice_name":  "Eminem"
+                   },
+                   {
+                       "voice_id":  "HarryStyles",
+                       "voice_name":  "Harry Styles"
+                   },
+                   {
+                       "voice_id":  "NickiMinaj",
+                       "voice_name":  "Nicki Minaj"
+                   },
+                   {
+                       "voice_id":  "1e0afa95-143c-4fc9-8467-26ada879e6b5",
+                       "voice_name":  "J. Cole"
+                   },
+                   {
+                       "voice_id":  "d8339dbf-1f9f-4f9a-bed1-f0a60e2671e4",
+                       "voice_name":  "Olivia Rodrigo"
+                   },
+                   {
+                       "voice_id":  "b13ded55-7980-40c2-b5a1-6ff383c494f7",
+                       "voice_name":  "Sia"
+                   },
+                   {
+                       "voice_id":  "DemiLovato",
+                       "voice_name":  "Demi Lovato"
+                   },
+                   {
+                       "voice_id":  "bcc985e5-b505-4a6b-4m01-61pl0f76sf2",
+                       "voice_name":  "Anitta"
+                   },
+                   {
+                       "voice_id":  "MariahCarey",
+                       "voice_name":  "Mariah Carey"
+                   },
+                   {
+                       "voice_id":  "DojaCat",
+                       "voice_name":  "Doja Cat"
+                   },
+                   {
+                       "voice_id":  "21215692-da44-4896-ab9e-0730a5286a16",
+                       "voice_name":  "Jimin"
+                   },
+                   {
+                       "voice_id":  "fad35b9b-cac0-47ab-9bf9-c30799238201",
+                       "voice_name":  "Tyler The Creator"
+                   },
+                   {
+                       "voice_id":  "0a48bb24-995d-4f7b-913c-6a46882b1931",
+                       "voice_name":  "Lizzo"
+                   },
+                   {
+                       "voice_id":  "KanyeWest",
+                       "voice_name":  "Kanye West"
+                   },
+                   {
+                       "voice_id":  "Rosalia",
+                       "voice_name":  "Rosalia"
+                   },
+                   {
+                       "voice_id":  "Rose",
+                       "voice_name":  "Rose"
+                   },
+                   {
+                       "voice_id":  "00c24a2d-9e96-412a-88d8-e48e82099f47",
+                       "voice_name":  "Frank Ocean"
+                   },
+                   {
+                       "voice_id":  "TateMcrae",
+                       "voice_name":  "Tate McRae"
+                   },
+                   {
+                       "voice_id":  "92e80b50-068a-47d1-a73b-14375fb8f577",
+                       "voice_name":  "Zara Larsson"
+                   },
+                   {
+                       "voice_id":  "MacMiller",
+                       "voice_name":  "Mac Miller"
+                   },
+                   {
+                       "voice_id":  "XXXTENTACION",
+                       "voice_name":  "XXXTentacion"
+                   },
+                   {
+                       "voice_id":  "esryc2ysfr",
+                       "voice_name":  "Shakira"
+                   },
+                   {
+                       "voice_id":  "04ff02cc-294e-4f67-b00b-fcdeba998bd6",
+                       "voice_name":  "Pharrell Williams"
+                   },
+                   {
+                       "voice_id":  "LilWayne",
+                       "voice_name":  "Lil Wayne"
+                   },
+                   {
+                       "voice_id":  "vyrrbwrf7t",
+                       "voice_name":  "PinkPantheress"
+                   },
+                   {
+                       "voice_id":  "BarackObama",
+                       "voice_name":  "Barack Obama"
+                   },
+                   {
+                       "voice_id":  "CardiB",
+                       "voice_name":  "Cardi B"
+                   },
+                   {
+                       "voice_id":  "df48d9f6-1031-4eef-b5a5-6e0cd21e7578",
+                       "voice_name":  "Enrique Iglesias"
+                   },
+                   {
+                       "voice_id":  "6e35e4b4-7cbc-49b9-8837-2ba46ed0ddac",
+                       "voice_name":  "Lisa"
+                   },
+                   {
+                       "voice_id":  "MileyCyrus",
+                       "voice_name":  "Miley Cyrus"
+                   },
+                   {
+                       "voice_id":  "TheKidLAROI",
+                       "voice_name":  "The Kid LAROI"
+                   },
+                   {
+                       "voice_id":  "AvaMax",
+                       "voice_name":  "Ava Max"
+                   },
+                   {
+                       "voice_id":  "8ce7b9a2-660d-4900-b55d-07f6979f5704",
+                       "voice_name":  "Jason Derulo"
+                   },
+                   {
+                       "voice_id":  "022e1e3e-09a8-49e0-acce-b3fc056bd4fa",
+                       "voice_name":  "Offset"
+                   },
+                   {
+                       "voice_id":  "9df480da-c8a3-4e34-b3e0-07ecd5e6467a",
+                       "voice_name":  "Niall Horan"
+                   },
+                   {
+                       "voice_id":  "88366272-fc68-4584-a19a-5bfdffe1c9c7",
+                       "voice_name":  "Future"
+                   },
+                   {
+                       "voice_id":  "79518090-2082-4c06-b43c-534f46a852c3",
+                       "voice_name":  "John Legend"
+                   },
+                   {
+                       "voice_id":  "fa68779c-a9e0-4473-af41-4c159bbd59b9",
+                       "voice_name":  "Zayn Malik"
+                   },
+                   {
+                       "voice_id":  "Beyonce",
+                       "voice_name":  "BeyoncÃ©"
+                   },
+                   {
+                       "voice_id":  "85806344-46c6-41df-b7c2-a436c9dd6ca6",
+                       "voice_name":  "Anderson Paak"
+                   },
+                   {
+                       "voice_id":  "37c0d3fd-0f05-426c-af5d-cd5a15bed787",
+                       "voice_name":  "Future"
+                   },
+                   {
+                       "voice_id":  "Pitbull",
+                       "voice_name":  "Pitbull"
+                   },
+                   {
+                       "voice_id":  "WhitneyHouston",
+                       "voice_name":  "Whitney Houston"
+                   },
+                   {
+                       "voice_id":  "e4355604-0b61-494f-9e71-0b1032d1db24",
+                       "voice_name":  "Elizabeth Olsen"
+                   },
+                   {
+                       "voice_id":  "bf94ba69-ffb3-4aaf-b8e8-bb263df0aab4",
+                       "voice_name":  "John Cena"
+                   },
+                   {
+                       "voice_id":  "e700f9ce-b29a-4cbc-ad4d-cb68bf8ed7d9",
+                       "voice_name":  "Tom Holland"
+                   },
+                   {
+                       "voice_id":  "a500c6fd-e4b0-4fd1-b056-6e6ed326a6b9",
+                       "voice_name":  "Missy Elliott"
+                   },
+                   {
+                       "voice_id":  "8efb9bb4-2e23-4e9f-9891-9ef5046c10d4",
+                       "voice_name":  "Kid Cudi"
+                   },
+                   {
+                       "voice_id":  "95519d8e-a6ec-4d4e-a237-fe85099ad6c1",
+                       "voice_name":  "Polo G"
+                   },
+                   {
+                       "voice_id":  "5333b917-5ff7-4a2b-86b5-c4f12dad0bcf",
+                       "voice_name":  "Sting"
+                   },
+                   {
+                       "voice_id":  "aa9659e2-73e7-4b1e-b6ff-bce44957971d",
+                       "voice_name":  "Kylie Minogue"
+                   },
+                   {
+                       "voice_id":  "e0bb585f-b798-4bac-ac4e-de7fff38f9d7",
+                       "voice_name":  "Elijah"
+                   },
+                   {
+                       "voice_id":  "1ec528bc-4851-4a52-8151-ef0de1b5f472",
+                       "voice_name":  "Jackson"
+                   },
+                   {
+                       "voice_id":  "a193458e-35d5-40a4-9160-fa92a7cf54f0",
+                       "voice_name":  "Ozuna"
+                   },
+                   {
+                       "voice_id":  "558cd797-76eb-49c0-99a1-55ab0e49ab01",
+                       "voice_name":  "Chris Brown"
+                   },
+                   {
+                       "voice_id":  "0031cf05-6d3d-4c15-9115-d8236590b957",
+                       "voice_name":  "Amy Winehouse"
+                   },
+                   {
+                       "voice_id":  "2a32a3d0-5977-4510-8925-0a7c6e6ec721",
+                       "voice_name":  "Stormzy"
+                   },
+                   {
+                       "voice_id":  "JohnFKennedy",
+                       "voice_name":  "John F Kennedy"
+                   },
+                   {
+                       "voice_id":  "CharliXCX",
+                       "voice_name":  "Charli XCX"
+                   },
+                   {
+                       "voice_id":  "28190a4a-8c56-464c-9ea0-513648fad08d",
+                       "voice_name":  "Luke Combs"
+                   },
+                   {
+                       "voice_id":  "FrankSinatra",
+                       "voice_name":  "Frank Sinatra"
+                   },
+                   {
+                       "voice_id":  "SonicBoom",
+                       "voice_name":  "Sonic Boom"
+                   },
+                   {
+                       "voice_id":  "0239b70c-d7f4-414b-b0fb-e48c9989ced3",
+                       "voice_name":  "Bob Marley"
+                   },
+                   {
+                       "voice_id":  "CentralCee",
+                       "voice_name":  "Central Cee"
+                   },
+                   {
+                       "voice_id":  "3ddbdf48-172e-43bf-9d99-b866857d3e0d",
+                       "voice_name":  "Sebastian Stan"
+                   },
+                   {
+                       "voice_id":  "a3ca0169-14ef-41ea-b0fc-f606fe92691a",
+                       "voice_name":  "Jessie J"
+                   },
+                   {
+                       "voice_id":  "YoungMichaelJackson",
+                       "voice_name":  "Young Michael Jackson"
+                   },
+                   {
+                       "voice_id":  "84b88958-4aef-41ae-bc76-4922438d058d",
+                       "voice_name":  "Rita Ora"
+                   },
+                   {
+                       "voice_id":  "31df11cc-2246-4718-befd-cff2e61f6846",
+                       "voice_name":  "Mason"
+                   },
+                   {
+                       "voice_id":  "aea6fdde-73c0-4758-a9f1-c789c825605b",
+                       "voice_name":  "Celine Dion"
+                   },
+                   {
+                       "voice_id":  "0dd269e1-a7a9-46cd-8308-1e9bafa0eddc",
+                       "voice_name":  "Tyla"
+                   },
+                   {
+                       "voice_id":  "00e9f115-f825-4b68-8a38-53ba55f89469",
+                       "voice_name":  "Owen"
+                   },
+                   {
+                       "voice_id":  "e92781d3-5ffe-41e5-b59f-886af01a4e4f",
+                       "voice_name":  "Kehlani"
+                   },
+                   {
+                       "voice_id":  "6bd1de1f-81a4-441d-9b0e-4bf6dc9226ad",
+                       "voice_name":  "Johnny Cash"
+                   },
+                   {
+                       "voice_id":  "k8spxsrehx",
+                       "voice_name":  "David Attenborough"
+                   },
+                   {
+                       "voice_id":  "BebeRexha",
+                       "voice_name":  "Bebe Rexha"
+                   },
+                   {
+                       "voice_id":  "cee7274b-29a4-4e3b-9271-822a80ce3cc2",
+                       "voice_name":  "Jacob"
+                   },
+                   {
+                       "voice_id":  "e1cb7380-e3db-433a-b186-a996d7545986",
+                       "voice_name":  "Marceline"
+                   },
+                   {
+                       "voice_id":  "4ed16a6b-13dd-468c-a038-3dca10cb666e",
+                       "voice_name":  "Yandel"
+                   },
+                   {
+                       "voice_id":  "e44fcc3a-5aa4-492f-ad6c-fbbf4a4e52db",
+                       "voice_name":  "Hozier"
+                   },
+                   {
+                       "voice_id":  "02692655-d21c-4723-a144-ef6e394b0ccf",
+                       "voice_name":  "Alessia Cara"
+                   },
+                   {
+                       "voice_id":  "ccf5770d-579f-494e-b521-e2d487d60061",
+                       "voice_name":  "Noel"
+                   },
+                   {
+                       "voice_id":  "09d22c15-5407-4a7d-a53a-73c6d5da7b5a",
+                       "voice_name":  "Noel"
+                   },
+                   {
+                       "voice_id":  "KermitTheFrog",
+                       "voice_name":  "Kermit the Frog"
+                   },
+                   {
+                       "voice_id":  "rpujdahhv7",
+                       "voice_name":  "Brad Pitt"
+                   },
+                   {
+                       "voice_id":  "IceCube",
+                       "voice_name":  "Ice Cube"
+                   },
+                   {
+                       "voice_id":  "0c6ee0cf-5b4e-406e-9ac8-f5c3921e0dd6",
+                       "voice_name":  "Troye Sivan"
+                   },
+                   {
+                       "voice_id":  "0faf89fa-85be-4d07-93e9-b6fd59bad2a5",
+                       "voice_name":  "Amelie"
+                   },
+                   {
+                       "voice_id":  "4feb8254-6007-4d6a-98c2-170bb00ca4b6",
+                       "voice_name":  "Ava"
+                   },
+                   {
+                       "voice_id":  "616bf223-9ffd-4f17-9611-606228b3e6d0",
+                       "voice_name":  "Lil Tjay"
+                   },
+                   {
+                       "voice_id":  "e5bcb752-4e28-4142-b2b0-5a73a43b040b",
+                       "voice_name":  "Andrea Bocelli"
+                   },
+                   {
+                       "voice_id":  "b67d4151-b64a-45d5-a53b-ce2cff9d4c9c",
+                       "voice_name":  "Lissa"
+                   },
+                   {
+                       "voice_id":  "2b882dd5-d0b0-42d5-a548-ab34648bf867",
+                       "voice_name":  "Emma"
+                   },
+                   {
+                       "voice_id":  "1ce1ece9-f620-482c-a18a-1c36796d1493",
+                       "voice_name":  "Simone"
+                   },
+                   {
+                       "voice_id":  "381697b2-60c4-4171-9848-9ac9073fdcbe",
+                       "voice_name":  "Scarlett"
+                   },
+                   {
+                       "voice_id":  "c5b17e5a-0e3b-42bc-8e15-071735f38645",
+                       "voice_name":  "Peso Pluma"
+                   },
+                   {
+                       "voice_id":  "79ace2b1-8956-4085-a718-0c996fbdb88b",
+                       "voice_name":  "Hannah old"
+                   },
+                   {
+                       "voice_id":  "c3535cb9-8139-4b3a-a8bd-dda6ecd3390b",
+                       "voice_name":  "Myke Towers"
+                   },
+                   {
+                       "voice_id":  "BritneySpears",
+                       "voice_name":  "Britney Spears"
+                   },
+                   {
+                       "voice_id":  "9ab0bec4-f83f-461d-8055-478a7033a558",
+                       "voice_name":  "Kim Taehyung (V)"
+                   },
+                   {
+                       "voice_id":  "f1bb54e5-4e80-45db-8162-3498a9aadbf7",
+                       "voice_name":  "Owen"
+                   },
+                   {
+                       "voice_id":  "1513cdfe-0f6e-49a2-a679-d1281e7e245d",
+                       "voice_name":  "Bradley Cooper"
+                   },
+                   {
+                       "voice_id":  "0803984f-9894-43e5-a12b-6ed59e3963f6",
+                       "voice_name":  "Will Smith"
+                   },
+                   {
+                       "voice_id":  "nrcbqjf2tt",
+                       "voice_name":  "Cara Delevingne"
+                   },
+                   {
+                       "voice_id":  "019cee78-c1d4-4770-889a-47e6d36386a6",
+                       "voice_name":  "Kurt Cobain"
+                   },
+                   {
+                       "voice_id":  "gxhqc628ep",
+                       "voice_name":  "Common"
+                   },
+                   {
+                       "voice_id":  "hbm5e6akqh",
+                       "voice_name":  "Steve Perry"
+                   },
+                   {
+                       "voice_id":  "npfne246wx",
+                       "voice_name":  "Ozzy Osbourne"
+                   },
+                   {
+                       "voice_id":  "e30d24b9-802f-4033-b62a-79805a925f38",
+                       "voice_name":  "Mason"
+                   },
+                   {
+                       "voice_id":  "n63any7m72",
+                       "voice_name":  "Child (Female)"
+                   },
+                   {
+                       "voice_id":  "k5nvgtjm56",
+                       "voice_name":  "Dr. Eggman"
+                   },
+                   {
+                       "voice_id":  "TomJones",
+                       "voice_name":  "Tom Jones"
+                   },
+                   {
+                       "voice_id":  "JoeRogan",
+                       "voice_name":  "Joe Rogan"
+                   },
+                   {
+                       "voice_id":  "HomerSimpson",
+                       "voice_name":  "Homer Simpson"
+                   }
+               ]
+}
