@@ -1,13 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import dynamic from "next/dynamic";
-
-// Dynamically import wallet components to avoid SSR issues
-const WalletMultiButton = dynamic(
-  async () => (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
-  { ssr: false }
-);
+// Wallet components removed per user request
 
 const GENRES = [
   "Pop", "Rock", "Hip-Hop", "Electronic", "R&B", "Jazz",
@@ -302,8 +296,8 @@ export default function Home() {
                   key={g}
                   onClick={() => { setGenre(g); setShowGenres(false); }}
                   className={`group flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition-all duration-300 ${genre === g
-                      ? "bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] border border-white/10"
-                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                    ? "bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] border border-white/10"
+                    : "text-white/60 hover:bg-white/5 hover:text-white"
                     }`}
                 >
                   <span className={`h-2 w-2 shrink-0 rounded-full transition-all duration-300 ${genre === g ? "bg-pink-500 scale-125 shadow-[0_0_10px_#ec4899]" : "bg-white/20"
