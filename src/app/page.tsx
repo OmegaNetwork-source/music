@@ -1292,6 +1292,24 @@ export default function Home() {
       <main className="relative z-10 flex flex-1 flex-col p-2 md:p-4 md:h-screen md:overflow-hidden">
         <div className="glass-panel flex flex-1 flex-col overflow-hidden shadow-2xl md:mx-2 min-h-[calc(100vh-100px)]">
 
+          {!publicKey ? (
+            /* Connect wallet first – required so tracks are tied to wallet and downloads work */
+            <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
+              <div className="max-w-md space-y-6">
+                <div className="flex justify-center">
+                  <OmegaMusicLogo size={64} className="animate-glow" />
+                </div>
+                <h2 className="text-xl md:text-2xl font-bold text-white">Connect your wallet</h2>
+                <p className="text-white/60 text-sm md:text-base">
+                  Connect a Solana wallet to create music, save your tracks, and unlock full downloads (0.50 USDC per track).
+                </p>
+                <div className="flex justify-center pt-2">
+                  <WalletMultiButton className="!font-mono !rounded-xl !px-6 !py-3 !text-base !font-semibold" />
+                </div>
+              </div>
+            </div>
+          ) : (
+          <>
           {/* Header */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/10 px-6 py-6 backdrop-blur-xl gap-4">
             <div className="min-w-0 flex-1 relative w-full">
@@ -1321,16 +1339,14 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-3 w-full md:w-auto">
-              {publicKey && (
-                <button
-                  type="button"
-                  onClick={() => setShowProfile(true)}
-                  className="!hidden md:!inline-flex items-center gap-2 rounded-xl px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 text-sm font-semibold text-white/90"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                  Profile
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setShowProfile(true)}
+                className="!hidden md:!inline-flex items-center gap-2 rounded-xl px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 text-sm font-semibold text-white/90"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                Profile
+              </button>
               <WalletMultiButton className="!font-mono flex-1 md:flex-none !hidden md:!inline-flex" />
             </div>
           </div>
@@ -1777,6 +1793,8 @@ export default function Home() {
             </aside>
 
           </div>
+          </>
+          )}
         </div>
       </main>
     </div>
