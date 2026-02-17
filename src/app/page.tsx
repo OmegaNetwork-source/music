@@ -63,13 +63,6 @@ function TrackCard({
   onRename?: (name: string) => void;
   onPlay?: () => void;
   previewSeconds: number;
-  isUnlocked: boolean;
-  downloadSignature?: string;
-  isPaying: boolean;
-  onPay: () => void;
-  onLoad: () => void;
-  onRemove: () => void;
-  previewSeconds: number;
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const lastPlayReportRef = useRef(0);
