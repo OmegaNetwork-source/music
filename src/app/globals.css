@@ -200,3 +200,26 @@ input[type="range"]::-webkit-slider-thumb {
 .animate-glow {
   animation: pulse-glow 3s infinite ease-in-out;
 }
+
+/* Wallet button: clear, rounded pill (same as old BPM pill) */
+.wallet-adapter-button {
+  background: rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 9999px !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 0.75rem !important;
+  font-variant: normal !important;
+  padding: 0.5rem 1rem !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+.wallet-adapter-button:hover {
+  background: rgba(0, 0, 0, 0.3) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.wallet-adapter-button:not([disabled]):active {
+  background: rgba(0, 0, 0, 0.25) !important;
+}
+.wallet-adapter-button[aria-expanded="true"] {
+  background: rgba(0, 0, 0, 0.3) !important;
+}

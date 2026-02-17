@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+.music-studio-store.json
+.music-studio-audio/
 
 # debug
 npm-debug.log*

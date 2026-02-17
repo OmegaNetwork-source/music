@@ -1,4 +1,4 @@
-# Music Studio
+# Omega Music
 
 A Suno-like AI music generator. Pick a genre, add or generate lyrics, and create music with AI.
 
