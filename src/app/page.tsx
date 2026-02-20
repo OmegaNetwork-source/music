@@ -10,6 +10,7 @@ import {
 } from "@solana/spl-token";
 import Link from "next/link";
 import { OmegaMusicLogo } from "@/components/OmegaMusicLogo";
+import { saveTrackAudio, getTrackAudio } from "@/lib/indexedDb";
 
 const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 const USDC_DECIMALS = 6;
@@ -67,6 +68,7 @@ function TrackCard({
   const audioRef = useRef<HTMLAudioElement>(null);
   const lastPlayReportRef = useRef(0);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [localBlobUrl, setLocalBlobUrl] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState(track.name);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -76,9 +78,10 @@ function TrackCard({
       ? `/api/track/${track.id}/download?signature=${encodeURIComponent(downloadSignature)}`
       : null;
   const audioSrc =
-    isLegacy && isUnlocked
+    localBlobUrl ||
+    (isLegacy && isUnlocked
       ? track.audioUrl!
-      : fullAudioUrl ?? (isLegacy ? track.audioUrl! : `/api/track/${track.id}/preview`);
+      : fullAudioUrl ?? (isLegacy ? track.audioUrl! : `/api/track/${track.id}/preview`));
   const handleTimeUpdate = () => {
     if (isUnlocked) return;
     const el = audioRef.current;
@@ -186,58 +189,72 @@ function TrackCard({
         src={audioSrc}
         onTimeUpdate={handleTimeUpdate}
         onPlay={handlePlay}
-        onError={() => setLoadFailed(true)}
+        onError={() => {
+          if (!localBlobUrl) {
+            getTrackAudio(track.id).then((blob) => {
+              if (blob) {
+                const url = URL.createObjectURL(blob);
+                setLocalBlobUrl(url);
+                setLoadFailed(false);
+              } else {
+                setLoadFailed(true);
+              }
+            });
+          } else {
+            setLoadFailed(true);
+          }
+        }}
       />
       <p className="text-[10px] text-white/40 mb-3">
         {isUnlocked ? "Full track" : `Preview limited to ${previewSeconds} seconds`}
       </p>
       <div className="flex flex-col gap-2">
         <div className="flex gap-2">
-        {isUnlocked ? (
-          isLegacy ? (
-            <a
-              href={track.audioUrl}
-              download={`${track.name.replace(/\s+/g, "_")}.mp3`}
-              className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/20 text-xs font-semibold text-center text-white/70 hover:text-white transition-colors"
-            >
-              Download full
-            </a>
-          ) : downloadSignature ? (
-            <a
-              href={`/api/track/${track.id}/download?signature=${encodeURIComponent(downloadSignature)}`}
-              download={`${track.name.replace(/\s+/g, "_")}.mp3`}
-              className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/20 text-xs font-semibold text-center text-white/70 hover:text-white transition-colors"
-            >
-              Download full
-            </a>
+          {isUnlocked ? (
+            isLegacy ? (
+              <a
+                href={track.audioUrl}
+                download={`${track.name.replace(/\s+/g, "_")}.mp3`}
+                className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/20 text-xs font-semibold text-center text-white/70 hover:text-white transition-colors"
+              >
+                Download full
+              </a>
+            ) : downloadSignature ? (
+              <a
+                href={`/api/track/${track.id}/download?signature=${encodeURIComponent(downloadSignature)}`}
+                download={`${track.name.replace(/\s+/g, "_")}.mp3`}
+                className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/20 text-xs font-semibold text-center text-white/70 hover:text-white transition-colors"
+              >
+                Download full
+              </a>
+            ) : (
+              <span className="flex-1 py-2 rounded-lg bg-white/5 text-xs font-semibold text-center text-white/50">
+                Download full
+              </span>
+            )
           ) : (
-            <span className="flex-1 py-2 rounded-lg bg-white/5 text-xs font-semibold text-center text-white/50">
-              Download full
-            </span>
-          )
-        ) : (
+            <button
+              onClick={onPay}
+              disabled={isPaying}
+              className="flex-1 py-2 rounded-lg bg-emerald-500/30 hover:bg-emerald-500/50 border border-emerald-400/30 text-xs font-semibold text-center text-emerald-200 hover:text-white transition-colors disabled:opacity-50"
+            >
+              {isPaying ? "Confirm in Phantom…" : "Unlock full — 0.50 USDC"}
+            </button>
+          )}
           <button
-            onClick={onPay}
-            disabled={isPaying}
-            className="flex-1 py-2 rounded-lg bg-emerald-500/30 hover:bg-emerald-500/50 border border-emerald-400/30 text-xs font-semibold text-center text-emerald-200 hover:text-white transition-colors disabled:opacity-50"
+            onClick={onLoad}
+            className="flex-1 py-2 rounded-lg bg-pink-500/20 hover:bg-pink-500/40 text-xs font-semibold text-center text-pink-300 hover:text-white transition-colors"
           >
-            {isPaying ? "Confirm in Phantom…" : "Unlock full — 0.50 USDC"}
+            Load
           </button>
-        )}
-        <button
-          onClick={onLoad}
-          className="flex-1 py-2 rounded-lg bg-pink-500/20 hover:bg-pink-500/40 text-xs font-semibold text-center text-pink-300 hover:text-white transition-colors"
-        >
-          Load
-        </button>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="py-2 px-3 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-400/30 text-xs font-semibold text-white/60 hover:text-red-300 transition-colors"
-          title="Remove from history"
-        >
-          Remove
-        </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="py-2 px-3 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-400/30 text-xs font-semibold text-white/60 hover:text-red-300 transition-colors"
+            title="Remove from history"
+          >
+            Remove
+          </button>
         </div>
       </div>
     </div>
@@ -320,6 +337,7 @@ export default function Home() {
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressStartRef = useRef(0);
   const progressEtaRef = useRef(120);
+  const [showWarning, setShowWarning] = useState(true);
 
   /* Mobile State */
   const [showGenres, setShowGenres] = useState(false);
@@ -341,7 +359,7 @@ export default function Home() {
     fetch(`/api/artists?wallet=${encodeURIComponent(publicKey.toBase58())}`)
       .then((r) => r.json())
       .then((d) => d.success && setArtists(d.artists ?? []))
-      .catch(() => {});
+      .catch(() => { });
   }, [publicKey?.toBase58()]);
 
   useEffect(() => {
@@ -365,32 +383,63 @@ export default function Home() {
 
   const validatedLibraryRef = useRef(false);
   useEffect(() => {
-    if (validatedLibraryRef.current || library.length === 0) return;
-    validatedLibraryRef.current = true;
+    if (library.length === 0) return;
+
+    // Validate with server but keep local tracks if they exist in IndexedDB
     const ids = library.map((t) => t.id).join(",");
     fetch(`/api/track/validate?ids=${encodeURIComponent(ids)}`)
       .then((r) => r.json())
-      .then((d) => {
-        if (!d.success || !Array.isArray(d.validIds)) return;
-        const validSet = new Set(d.validIds as string[]);
-        if (validSet.size >= library.length) return;
-        setLibrary((prev) => prev.filter((t) => validSet.has(t.id)));
+      .then(async (d) => {
+        const validSet = new Set((d.success && Array.isArray(d.validIds)) ? (d.validIds as string[]) : []);
+
+        // Recover any tracks we have locally in IDB
+        const currentIds = library.map(t => t.id);
+        const keptIds = new Set<string>();
+
+        for (const id of currentIds) {
+          if (validSet.has(id)) {
+            keptIds.add(id);
+          } else {
+            // Check IDB
+            try {
+              const blob = await getTrackAudio(id);
+              if (blob) keptIds.add(id);
+            } catch {
+              // ignore
+            }
+          }
+        }
+
+        if (keptIds.size >= library.length) return; // All accounted for
+
+        setLibrary((prev) => prev.filter((t) => keptIds.has(t.id)));
         setUnlockedTrackIds((prev) => {
           const next = new Set(prev);
           next.forEach((id) => {
-            if (!validSet.has(id)) next.delete(id);
+            if (!keptIds.has(id)) next.delete(id);
           });
           return next;
         });
         setUnlockedSignatures((prev) => {
           const next = { ...prev };
           Object.keys(next).forEach((trackId) => {
-            if (!validSet.has(trackId)) delete next[trackId];
+            if (!keptIds.has(trackId)) delete next[trackId];
           });
           return next;
         });
       })
-      .catch(() => {});
+      .catch((e) => console.error("Validation error:", e));
+  }, [library.length]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (library.length > 0) {
+        e.preventDefault();
+        e.returnValue = ""; // Chrome requires returnValue to be set
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [library.length]);
 
   useEffect(() => {
@@ -603,8 +652,23 @@ export default function Home() {
 
       setLibrary((prev) => [...newTracks, ...prev]);
       setLastGeneratedTracks(newTracks);
+
+      // Save to IndexedDB for persistence
+      for (const track of newTracks) {
+        try {
+          fetch(successUrls[newTracks.indexOf(track)]!)
+            .then(r => r.blob())
+            .then(blob => saveTrackAudio(track.id, blob))
+            .catch(e => console.error("Failed to save local audio:", e));
+        } catch (e) {
+          console.error("Error initiating local save:", e);
+        }
+      }
+
+      setAudioUrl(null);
       setAudioUrl(null);
       setProgressStatus("Done");
+      setShowWarning(true);
 
     } catch (err) {
       stopProgress();
@@ -669,7 +733,7 @@ export default function Home() {
           signature: sig,
           blockhash,
           lastValidBlockHeight,
-        }).catch(() => {});
+        }).catch(() => { });
         // Poll from client so user sees "confirmed on-chain" (same as Phantom)
         for (let i = 0; i < 12; i++) {
           await new Promise((r) => setTimeout(r, 2000));
@@ -834,7 +898,7 @@ export default function Home() {
           trackId,
           artistId: artistId ?? null,
         }),
-      }).catch(() => {});
+      }).catch(() => { });
     }
   };
 
@@ -961,244 +1025,244 @@ export default function Home() {
                         )}
                       </div>
                     ) : (
-                    <div className="mb-6">
-                      <div className="flex items-center justify-between mb-3 px-2">
-                        <span className="text-xs font-bold uppercase tracking-widest text-white/40">My Artists</span>
-                        {!showCreateArtist && (
-                          <button
-                            type="button"
-                            onClick={() => setShowCreateArtist(true)}
-                            className="text-xs font-bold text-pink-400 hover:text-pink-300 uppercase"
-                          >
-                            + New artist
-                          </button>
-                        )}
-                      </div>
-                      {showCreateArtist ? (
-                        <div className="space-y-4 p-4 rounded-2xl bg-white/5 border border-white/10 mb-4">
-                          <input
-                            type="text"
-                            value={newArtistName}
-                            onChange={(e) => setNewArtistName(e.target.value)}
-                            placeholder="Artist name"
-                            className="glass-input w-full px-4 py-3 text-sm"
-                          />
-                          <div className="flex items-center gap-2">
-                            <label className="text-xs text-white/50 shrink-0">Cover / album image:</label>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="text-xs text-white/60 file:mr-2 file:py-2 file:px-3 file:rounded file:border-0 file:bg-white/10 file:text-white/80"
-                              onChange={(e) => {
-                                const f = e.target.files?.[0];
-                                if (!f) return;
-                                const r = new FileReader();
-                                r.onload = () => setNewArtistImage(r.result as string);
-                                r.readAsDataURL(f);
-                              }}
-                            />
-                          </div>
-                          <div className="flex gap-2">
+                      <div className="mb-6">
+                        <div className="flex items-center justify-between mb-3 px-2">
+                          <span className="text-xs font-bold uppercase tracking-widest text-white/40">My Artists</span>
+                          {!showCreateArtist && (
                             <button
                               type="button"
-                              onClick={handleCreateArtist}
-                              disabled={creatingArtist || !newArtistName.trim()}
-                              className="flex-1 py-2.5 rounded-xl bg-pink-500/30 hover:bg-pink-500/50 text-sm font-semibold disabled:opacity-50"
+                              onClick={() => setShowCreateArtist(true)}
+                              className="text-xs font-bold text-pink-400 hover:text-pink-300 uppercase"
                             >
-                              {creatingArtist ? "Creating…" : "Create artist"}
+                              + New artist
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => { setShowCreateArtist(false); setNewArtistName(""); setNewArtistImage(null); }}
-                              className="py-2.5 px-4 rounded-xl bg-white/10 text-sm font-semibold text-white/70"
-                            >
-                              Cancel
-                            </button>
-                          </div>
+                          )}
                         </div>
-                      ) : null}
-                      <div className="space-y-4">
-                        {artists.map((a) => {
-                          const assignedTracks = library.filter((t) => t.artistId === a.id);
-                          const unassignedOrOther = library.filter((t) => t.artistId !== a.id);
-                          return (
-                            <div key={a.id} className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-                              <div className="flex items-center gap-4 p-4 border-b border-white/10">
-                                <div className="relative shrink-0">
-                                  <div className="w-14 h-14 rounded-full bg-white/20 overflow-hidden">
-                                    {(editingProfileArtistId === a.id && editImageUrl) || (!editingProfileArtistId && a.imageUrl) ? (
-                                      <img src={(editingProfileArtistId === a.id && editImageUrl) ? editImageUrl : a.imageUrl!} alt="" className="w-full h-full object-cover" />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center text-xl font-bold text-white/70">
-                                        {a.name.slice(0, 1)}
-                                      </div>
-                                    )}
-                                  </div>
-                                  {editingProfileArtistId === a.id && (
-                                    <label className="absolute bottom-0 right-0 rounded-full bg-pink-500/80 hover:bg-pink-500 p-1.5 cursor-pointer">
-                                      <input
-                                        type="file"
-                                        accept="image/*"
-                                        className="sr-only"
-                                        onChange={(e) => {
-                                          const f = e.target.files?.[0];
-                                          if (!f) return;
-                                          const r = new FileReader();
-                                          r.onload = () => setEditImageUrl(r.result as string);
-                                          r.readAsDataURL(f);
-                                        }}
-                                      />
-                                      <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 13v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7" /></svg>
-                                    </label>
-                                  )}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-base font-semibold text-white truncate">{a.name}</p>
-                                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                                    {editingSlugArtistId === a.id ? (
-                                      <>
-                                        <input
-                                          type="text"
-                                          value={editingSlugValue}
-                                          onChange={(e) => setEditingSlugValue(e.target.value)}
-                                          placeholder="profile-url"
-                                          className="glass-input text-xs px-2 py-1.5 w-40"
-                                        />
-                                        <button
-                                          type="button"
-                                          disabled={savingSlug}
-                                          onClick={() => handleUpdateArtistSlug(a.id, editingSlugValue)}
-                                          className="text-xs font-semibold text-pink-400 hover:text-pink-300"
-                                        >
-                                          {savingSlug ? "Saving…" : "Save"}
-                                        </button>
-                                        <button type="button" onClick={() => { setEditingSlugArtistId(null); setEditingSlugValue(""); }} className="text-xs text-white/50">Cancel</button>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <span className="text-xs text-white/40">
-                                          {a.slug ? (
-                                            <span className="font-mono text-white/60">{a.slug}</span>
-                                          ) : (
-                                            "No profile URL"
-                                          )}
-                                        </span>
-                                        <button type="button" onClick={() => { setEditingSlugArtistId(a.id); setEditingSlugValue(a.slug ?? ""); }} className="text-xs text-pink-400 hover:text-pink-300">Edit URL</button>
-                                      </>
-                                    )}
-                                  </div>
-                                  {a.slug && (
-                                    <a
-                                      href={`/artist/${a.slug}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 mt-1 text-xs text-white/50 hover:text-white/80"
-                                    >
-                                      View profile →
-                                    </a>
-                                  )}
-                                  {editingProfileArtistId !== a.id && (
-                                    <button type="button" onClick={() => handleOpenEditProfile(a)} className="mt-2 text-xs text-pink-400 hover:text-pink-300">Edit profile (photo, bio, links)</button>
-                                  )}
-                                </div>
-                              </div>
-                              {editingProfileArtistId === a.id && (
-                                <div className="p-4 border-b border-white/10 space-y-3 bg-white/5">
-                                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Profile details</p>
-                                  <div>
-                                    <label className="block text-xs text-white/50 mb-1">Bio</label>
-                                    <textarea
-                                      value={editBio}
-                                      onChange={(e) => setEditBio(e.target.value)}
-                                      placeholder="Short bio for your artist page..."
-                                      rows={3}
-                                      className="glass-input w-full px-3 py-2 text-sm resize-y"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs text-white/50 mb-1">YouTube URL</label>
-                                    <input
-                                      type="url"
-                                      value={editYoutubeUrl}
-                                      onChange={(e) => setEditYoutubeUrl(e.target.value)}
-                                      placeholder="https://youtube.com/..."
-                                      className="glass-input w-full px-3 py-2 text-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs text-white/50 mb-1">Website URL</label>
-                                    <input
-                                      type="url"
-                                      value={editWebsiteUrl}
-                                      onChange={(e) => setEditWebsiteUrl(e.target.value)}
-                                      placeholder="https://..."
-                                      className="glass-input w-full px-3 py-2 text-sm"
-                                    />
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <button
-                                      type="button"
-                                      disabled={savingProfile}
-                                      onClick={() => handleSaveProfile(a.id)}
-                                      className="py-2 px-4 rounded-xl bg-pink-500/30 hover:bg-pink-500/50 text-sm font-semibold disabled:opacity-50"
-                                    >
-                                      {savingProfile ? "Saving…" : "Save"}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => { setEditingProfileArtistId(null); setEditBio(""); setEditYoutubeUrl(""); setEditWebsiteUrl(""); setEditImageUrl(null); }}
-                                      className="py-2 px-4 rounded-xl bg-white/10 text-sm font-semibold text-white/70"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                              <div className="p-4 space-y-3">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Songs</p>
-                                {assignedTracks.length > 0 ? (
-                                  <ul className="space-y-1.5">
-                                    {assignedTracks.map((t) => (
-                                      <li key={t.id} className="flex items-center justify-between gap-2 text-sm text-white/80">
-                                        <span className="truncate">{t.name}</span>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleAssignArtist(t.id, null)}
-                                          className="text-[10px] text-white/40 hover:text-red-400 shrink-0"
-                                        >
-                                          Remove
-                                        </button>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                ) : (
-                                  <p className="text-xs text-white/40">No tracks assigned yet.</p>
-                                )}
-                                {library.length > 0 && (
-                                  <select
-                                    className="glass-input text-xs py-2 px-3 rounded-xl w-full max-w-xs"
-                                    value=""
-                                    onChange={(e) => {
-                                      const trackId = e.target.value;
-                                      if (trackId) handleAssignArtist(trackId, a.id);
-                                      e.target.value = "";
-                                    }}
-                                  >
-                                    <option value="">+ Assign a track</option>
-                                    {unassignedOrOther.map((t) => (
-                                      <option key={t.id} value={t.id}>{t.name}</option>
-                                    ))}
-                                  </select>
-                                )}
-                              </div>
+                        {showCreateArtist ? (
+                          <div className="space-y-4 p-4 rounded-2xl bg-white/5 border border-white/10 mb-4">
+                            <input
+                              type="text"
+                              value={newArtistName}
+                              onChange={(e) => setNewArtistName(e.target.value)}
+                              placeholder="Artist name"
+                              className="glass-input w-full px-4 py-3 text-sm"
+                            />
+                            <div className="flex items-center gap-2">
+                              <label className="text-xs text-white/50 shrink-0">Cover / album image:</label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="text-xs text-white/60 file:mr-2 file:py-2 file:px-3 file:rounded file:border-0 file:bg-white/10 file:text-white/80"
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (!f) return;
+                                  const r = new FileReader();
+                                  r.onload = () => setNewArtistImage(r.result as string);
+                                  r.readAsDataURL(f);
+                                }}
+                              />
                             </div>
-                          );
-                        })}
-                        {artists.length === 0 && !showCreateArtist && (
-                          <p className="text-sm text-white/40 py-6 px-4">No artists yet. Create one to set a profile URL and assign tracks here.</p>
-                        )}
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={handleCreateArtist}
+                                disabled={creatingArtist || !newArtistName.trim()}
+                                className="flex-1 py-2.5 rounded-xl bg-pink-500/30 hover:bg-pink-500/50 text-sm font-semibold disabled:opacity-50"
+                              >
+                                {creatingArtist ? "Creating…" : "Create artist"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setShowCreateArtist(false); setNewArtistName(""); setNewArtistImage(null); }}
+                                className="py-2.5 px-4 rounded-xl bg-white/10 text-sm font-semibold text-white/70"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                        <div className="space-y-4">
+                          {artists.map((a) => {
+                            const assignedTracks = library.filter((t) => t.artistId === a.id);
+                            const unassignedOrOther = library.filter((t) => t.artistId !== a.id);
+                            return (
+                              <div key={a.id} className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+                                <div className="flex items-center gap-4 p-4 border-b border-white/10">
+                                  <div className="relative shrink-0">
+                                    <div className="w-14 h-14 rounded-full bg-white/20 overflow-hidden">
+                                      {(editingProfileArtistId === a.id && editImageUrl) || (!editingProfileArtistId && a.imageUrl) ? (
+                                        <img src={(editingProfileArtistId === a.id && editImageUrl) ? editImageUrl : a.imageUrl!} alt="" className="w-full h-full object-cover" />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-xl font-bold text-white/70">
+                                          {a.name.slice(0, 1)}
+                                        </div>
+                                      )}
+                                    </div>
+                                    {editingProfileArtistId === a.id && (
+                                      <label className="absolute bottom-0 right-0 rounded-full bg-pink-500/80 hover:bg-pink-500 p-1.5 cursor-pointer">
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          className="sr-only"
+                                          onChange={(e) => {
+                                            const f = e.target.files?.[0];
+                                            if (!f) return;
+                                            const r = new FileReader();
+                                            r.onload = () => setEditImageUrl(r.result as string);
+                                            r.readAsDataURL(f);
+                                          }}
+                                        />
+                                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 13v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7" /></svg>
+                                      </label>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-base font-semibold text-white truncate">{a.name}</p>
+                                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                                      {editingSlugArtistId === a.id ? (
+                                        <>
+                                          <input
+                                            type="text"
+                                            value={editingSlugValue}
+                                            onChange={(e) => setEditingSlugValue(e.target.value)}
+                                            placeholder="profile-url"
+                                            className="glass-input text-xs px-2 py-1.5 w-40"
+                                          />
+                                          <button
+                                            type="button"
+                                            disabled={savingSlug}
+                                            onClick={() => handleUpdateArtistSlug(a.id, editingSlugValue)}
+                                            className="text-xs font-semibold text-pink-400 hover:text-pink-300"
+                                          >
+                                            {savingSlug ? "Saving…" : "Save"}
+                                          </button>
+                                          <button type="button" onClick={() => { setEditingSlugArtistId(null); setEditingSlugValue(""); }} className="text-xs text-white/50">Cancel</button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span className="text-xs text-white/40">
+                                            {a.slug ? (
+                                              <span className="font-mono text-white/60">{a.slug}</span>
+                                            ) : (
+                                              "No profile URL"
+                                            )}
+                                          </span>
+                                          <button type="button" onClick={() => { setEditingSlugArtistId(a.id); setEditingSlugValue(a.slug ?? ""); }} className="text-xs text-pink-400 hover:text-pink-300">Edit URL</button>
+                                        </>
+                                      )}
+                                    </div>
+                                    {a.slug && (
+                                      <a
+                                        href={`/artist/${a.slug}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 mt-1 text-xs text-white/50 hover:text-white/80"
+                                      >
+                                        View profile →
+                                      </a>
+                                    )}
+                                    {editingProfileArtistId !== a.id && (
+                                      <button type="button" onClick={() => handleOpenEditProfile(a)} className="mt-2 text-xs text-pink-400 hover:text-pink-300">Edit profile (photo, bio, links)</button>
+                                    )}
+                                  </div>
+                                </div>
+                                {editingProfileArtistId === a.id && (
+                                  <div className="p-4 border-b border-white/10 space-y-3 bg-white/5">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Profile details</p>
+                                    <div>
+                                      <label className="block text-xs text-white/50 mb-1">Bio</label>
+                                      <textarea
+                                        value={editBio}
+                                        onChange={(e) => setEditBio(e.target.value)}
+                                        placeholder="Short bio for your artist page..."
+                                        rows={3}
+                                        className="glass-input w-full px-3 py-2 text-sm resize-y"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-white/50 mb-1">YouTube URL</label>
+                                      <input
+                                        type="url"
+                                        value={editYoutubeUrl}
+                                        onChange={(e) => setEditYoutubeUrl(e.target.value)}
+                                        placeholder="https://youtube.com/..."
+                                        className="glass-input w-full px-3 py-2 text-sm"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-white/50 mb-1">Website URL</label>
+                                      <input
+                                        type="url"
+                                        value={editWebsiteUrl}
+                                        onChange={(e) => setEditWebsiteUrl(e.target.value)}
+                                        placeholder="https://..."
+                                        className="glass-input w-full px-3 py-2 text-sm"
+                                      />
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button
+                                        type="button"
+                                        disabled={savingProfile}
+                                        onClick={() => handleSaveProfile(a.id)}
+                                        className="py-2 px-4 rounded-xl bg-pink-500/30 hover:bg-pink-500/50 text-sm font-semibold disabled:opacity-50"
+                                      >
+                                        {savingProfile ? "Saving…" : "Save"}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => { setEditingProfileArtistId(null); setEditBio(""); setEditYoutubeUrl(""); setEditWebsiteUrl(""); setEditImageUrl(null); }}
+                                        className="py-2 px-4 rounded-xl bg-white/10 text-sm font-semibold text-white/70"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="p-4 space-y-3">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Songs</p>
+                                  {assignedTracks.length > 0 ? (
+                                    <ul className="space-y-1.5">
+                                      {assignedTracks.map((t) => (
+                                        <li key={t.id} className="flex items-center justify-between gap-2 text-sm text-white/80">
+                                          <span className="truncate">{t.name}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleAssignArtist(t.id, null)}
+                                            className="text-[10px] text-white/40 hover:text-red-400 shrink-0"
+                                          >
+                                            Remove
+                                          </button>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    <p className="text-xs text-white/40">No tracks assigned yet.</p>
+                                  )}
+                                  {library.length > 0 && (
+                                    <select
+                                      className="glass-input text-xs py-2 px-3 rounded-xl w-full max-w-xs"
+                                      value=""
+                                      onChange={(e) => {
+                                        const trackId = e.target.value;
+                                        if (trackId) handleAssignArtist(trackId, a.id);
+                                        e.target.value = "";
+                                      }}
+                                    >
+                                      <option value="">+ Assign a track</option>
+                                      {unassignedOrOther.map((t) => (
+                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                      ))}
+                                    </select>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {artists.length === 0 && !showCreateArtist && (
+                            <p className="text-sm text-white/40 py-6 px-4">No artists yet. Create one to set a profile URL and assign tracks here.</p>
+                          )}
+                        </div>
                       </div>
-                    </div>
                     )}
                   </>
                 ) : (
@@ -1309,491 +1373,533 @@ export default function Home() {
               </div>
             </div>
           ) : (
-          <>
-          {/* Header */}
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/10 px-6 py-6 backdrop-blur-xl gap-4">
-            <div className="min-w-0 flex-1 relative w-full">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={trackName === "Untitled" ? "" : trackName}
-                  onChange={(e) => {
-                    setTrackName(e.target.value);
-                    if (isTyping) setIsTyping(false);
-                  }}
-                  onBlur={() => {
-                    if (!trackName) {
-                      setTrackName("Untitled");
-                      setIsTyping(true);
-                    }
-                  }}
-                  className="w-full max-w-md bg-transparent text-2xl md:text-3xl font-bold text-white placeholder-white/20 focus:outline-none tracking-tight relative z-10"
-                />
-                {isTyping && trackName === "Untitled" && (
-                  <div className="absolute top-0 left-0 pointer-events-none text-2xl md:text-3xl font-bold text-white/30 typing-animation truncate max-w-full">
-                    {placeholderText}
-                  </div>
-                )}
-              </div>
-              <p className="mt-1 text-xs md:text-sm font-medium text-white/50">AI Music Generation • {genre || "Custom Style"}</p>
-            </div>
-
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <button
-                type="button"
-                onClick={() => setShowProfile(true)}
-                className="!hidden md:!inline-flex items-center gap-2 rounded-xl px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 text-sm font-semibold text-white/90"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                Profile
-              </button>
-              <WalletMultiButton className="!font-mono flex-1 md:flex-none !hidden md:!inline-flex" />
-            </div>
-          </div>
-
-          <div className="flex flex-1 flex-row overflow-hidden relative">
-            {/* Center Input Area */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-24 md:pb-8">
-              <div className="max-w-3xl mx-auto space-y-6 md:space-y-8">
-
-                {/* Lyrics Section */}
-                <section className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base md:text-lg font-semibold text-white/90 flex items-center gap-2">
-                      <svg className="w-5 h-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-                      Lyrics & Content
-                    </h3>
-                    <button
-                      onClick={handleGenerateLyrics}
-                      disabled={generatingLyrics}
-                      className="text-xs font-bold text-pink-400 hover:text-pink-300 transition-colors uppercase tracking-wide disabled:opacity-50"
-                    >
-                      {generatingLyrics ? "Writing..." : "+ Auto-Write"}
-                    </button>
-                  </div>
-
-                  {/* Lyrics Controls - Stack on mobile, grid on desktop */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-white/40 uppercase tracking-widest pl-1">Theme</label>
-                      <input
-                        value={theme}
-                        onChange={(e) => setTheme(e.target.value)}
-                        placeholder="e.g. Cyberpunk Love"
-                        className="glass-input w-full px-4 py-3 text-sm placeholder-white/20"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-white/40 uppercase tracking-widest pl-1">Mood</label>
-                      <input
-                        value={mood}
-                        onChange={(e) => setMood(e.target.value)}
-                        placeholder="e.g. Energetic"
-                        className="glass-input w-full px-4 py-3 text-sm placeholder-white/20"
-                      />
-                    </div>
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-semibold text-white/40 uppercase tracking-widest pl-1">Lyrics style</label>
-                      <input
-                        value={lyricsStyle}
-                        onChange={(e) => setLyricsStyle(e.target.value)}
-                        placeholder="e.g. Rap, trap, party anthem, ballad"
-                        className="glass-input w-full px-4 py-3 text-sm placeholder-white/20"
-                      />
-                    </div>
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-semibold text-white/40 uppercase tracking-widest pl-1">Content / direction</label>
-                      <textarea
-                        value={contentDirection}
-                        onChange={(e) => setContentDirection(e.target.value)}
-                        placeholder="e.g. Uses profanity, about getting money and flexing, no filter. Or: clean, family-friendly, inspirational."
-                        rows={2}
-                        className="glass-input w-full px-4 py-3 text-sm placeholder-white/20 resize-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="glass-input p-0 overflow-hidden relative group">
-                    <textarea
-                      value={lyrics}
-                      onChange={(e) => setLyrics(e.target.value)}
-                      placeholder="Enter your lyrics here..."
-                      rows={6}
-                      className="w-full min-h-[180px] bg-transparent p-4 md:p-6 text-sm md:text-base leading-relaxed text-white placeholder-white/20 resize-y focus:outline-none custom-scrollbar"
-                    />
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                  </div>
-                </section>
-
-                {/* Style Section */}
-                <section className="space-y-4">
-                  <h3 className="text-base md:text-lg font-semibold text-white/90 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
-                    Musical Style
-                  </h3>
-                  <div className="space-y-1.5">
+            <>
+              {/* Header */}
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/10 px-6 py-6 backdrop-blur-xl gap-4">
+                <div className="min-w-0 flex-1 relative w-full">
+                  <div className="relative">
                     <input
-                      value={stylePrompt}
-                      onChange={(e) => setStylePrompt(e.target.value)}
-                      placeholder="e.g. '80s synthwave'"
-                      className="glass-input w-full px-4 py-4 text-base md:text-lg font-medium placeholder-white/20"
+                      type="text"
+                      value={trackName === "Untitled" ? "" : trackName}
+                      onChange={(e) => {
+                        setTrackName(e.target.value);
+                        if (isTyping) setIsTyping(false);
+                      }}
+                      onBlur={() => {
+                        if (!trackName) {
+                          setTrackName("Untitled");
+                          setIsTyping(true);
+                        }
+                      }}
+                      className="w-full max-w-md bg-transparent text-2xl md:text-3xl font-bold text-white placeholder-white/20 focus:outline-none tracking-tight relative z-10"
                     />
+                    {isTyping && trackName === "Untitled" && (
+                      <div className="absolute top-0 left-0 pointer-events-none text-2xl md:text-3xl font-bold text-white/30 typing-animation truncate max-w-full">
+                        {placeholderText}
+                      </div>
+                    )}
                   </div>
-                </section>
+                  <p className="mt-1 text-xs md:text-sm font-medium text-white/50">AI Music Generation • {genre || "Custom Style"}</p>
+                </div>
 
-                {/* Generation Area */}
-                <div className="pt-4 pb-8">
-                  {paymentTx && (
-                    <div className="mb-6 p-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-100 text-sm backdrop-blur-md">
-                      <div className="flex flex-col gap-2">
-                        <span className="font-medium">
-                          {paymentTx.onChainConfirmed
-                            ? "✓ Payment confirmed on-chain. Unlocking track…"
-                            : "Transaction submitted. Confirming on-chain…"}
-                        </span>
-                        {solscanUrl && (
-                          <a
-                            href={solscanUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-emerald-300 hover:text-emerald-200 underline text-xs"
-                          >
-                            View on Solscan →
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {error && (
-                    <div className="mb-6 p-4 rounded-2xl bg-red-500/20 border border-red-500/30 text-red-200 text-sm backdrop-blur-md">
-                      ⚠️ {error}
-                    </div>
-                  )}
-
-                  {generatingMusic && progressStatus && (
-                    <div className="mb-8 p-6 rounded-3xl bg-black/20 border border-white/5 backdrop-blur-sm">
-                      <div className="flex justify-between text-sm font-medium mb-2 text-white/80">
-                        <span>{progressStatus}</span>
-                        <span>{progressPercent}%</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-pink-500 to-violet-600 transition-all duration-300 shadow-[0_0_15px_#ec4899]"
-                          style={{ width: `${progressPercent}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
+                <div className="flex items-center gap-3 w-full md:w-auto">
                   <button
-                    onClick={handleGenerateMusic}
-                    disabled={generatingMusic || (!lyrics?.trim() && !stylePrompt && !genre)}
-                    className="liquid-button liquid-button-primary w-full py-4 md:py-5 text-lg md:text-xl font-bold tracking-wide disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+                    type="button"
+                    onClick={() => setShowProfile(true)}
+                    className="!hidden md:!inline-flex items-center gap-2 rounded-xl px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 text-sm font-semibold text-white/90"
                   >
-                    <span className="relative z-10 flex items-center justify-center gap-3">
-                      {generatingMusic ? (
-                        <>
-                          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                          <span>Creating Magic...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Generate Track</span>
-                          <svg className="w-5 h-5 md:w-6 md:h-6 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                        </>
-                      )}
-                    </span>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    Profile
                   </button>
+                  <WalletMultiButton className="!font-mono flex-1 md:flex-none !hidden md:!inline-flex" />
                 </div>
               </div>
-            </div>
 
-            {/* Right Sidebar - History (Desktop: Static, Mobile: Fixed Overlay) */}
-            <aside className={`
+              <div className="flex flex-1 flex-row overflow-hidden relative">
+                {/* Center Input Area */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-24 md:pb-8">
+                  <div className="max-w-3xl mx-auto space-y-6 md:space-y-8">
+                    {showWarning && library.length > 0 && (
+                      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-start gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <svg className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-bold text-amber-200 mb-1">Backup Recommendation</h4>
+                          <p className="text-sm text-amber-200/80 leading-relaxed">
+                            Warning: Download your songs to your device before refreshing the browser. Songs are not saved permanently on the server yet.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setShowWarning(false)}
+                          className="p-1 text-amber-200/60 hover:text-amber-200 transition-colors"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Lyrics Section */}
+                    <section className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-base md:text-lg font-semibold text-white/90 flex items-center gap-2">
+                          <svg className="w-5 h-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                          Lyrics & Content
+                        </h3>
+                        <button
+                          onClick={handleGenerateLyrics}
+                          disabled={generatingLyrics}
+                          className="text-xs font-bold text-pink-400 hover:text-pink-300 transition-colors uppercase tracking-wide disabled:opacity-50"
+                        >
+                          {generatingLyrics ? "Writing..." : "+ Auto-Write"}
+                        </button>
+                      </div>
+
+                      {/* Lyrics Controls - Stack on mobile, grid on desktop */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-white/40 uppercase tracking-widest pl-1">Theme</label>
+                          <input
+                            value={theme}
+                            onChange={(e) => setTheme(e.target.value)}
+                            placeholder="e.g. Cyberpunk Love"
+                            className="glass-input w-full px-4 py-3 text-sm placeholder-white/20"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-white/40 uppercase tracking-widest pl-1">Mood</label>
+                          <input
+                            value={mood}
+                            onChange={(e) => setMood(e.target.value)}
+                            placeholder="e.g. Energetic"
+                            className="glass-input w-full px-4 py-3 text-sm placeholder-white/20"
+                          />
+                        </div>
+                        <div className="space-y-1.5 md:col-span-2">
+                          <label className="text-xs font-semibold text-white/40 uppercase tracking-widest pl-1">Lyrics style</label>
+                          <input
+                            value={lyricsStyle}
+                            onChange={(e) => setLyricsStyle(e.target.value)}
+                            placeholder="e.g. Rap, trap, party anthem, ballad"
+                            className="glass-input w-full px-4 py-3 text-sm placeholder-white/20"
+                          />
+                        </div>
+                        <div className="space-y-1.5 md:col-span-2">
+                          <label className="text-xs font-semibold text-white/40 uppercase tracking-widest pl-1">Content / direction</label>
+                          <textarea
+                            value={contentDirection}
+                            onChange={(e) => setContentDirection(e.target.value)}
+                            placeholder="e.g. Uses profanity, about getting money and flexing, no filter. Or: clean, family-friendly, inspirational."
+                            rows={2}
+                            className="glass-input w-full px-4 py-3 text-sm placeholder-white/20 resize-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="glass-input p-0 overflow-hidden relative group">
+                        <textarea
+                          value={lyrics}
+                          onChange={(e) => setLyrics(e.target.value)}
+                          placeholder="Enter your lyrics here..."
+                          rows={6}
+                          className="w-full min-h-[180px] bg-transparent p-4 md:p-6 text-sm md:text-base leading-relaxed text-white placeholder-white/20 resize-y focus:outline-none custom-scrollbar"
+                        />
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                      </div>
+                    </section>
+
+                    {/* Style Section */}
+                    <section className="space-y-4">
+                      <h3 className="text-base md:text-lg font-semibold text-white/90 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
+                        Musical Style
+                      </h3>
+                      <div className="space-y-1.5">
+                        <input
+                          value={stylePrompt}
+                          onChange={(e) => setStylePrompt(e.target.value)}
+                          placeholder="e.g. '80s synthwave'"
+                          className="glass-input w-full px-4 py-4 text-base md:text-lg font-medium placeholder-white/20"
+                        />
+                      </div>
+                    </section>
+
+                    {/* Generation Area */}
+                    <div className="pt-4 pb-8">
+                      {paymentTx && (
+                        <div className="mb-6 p-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-100 text-sm backdrop-blur-md">
+                          <div className="flex flex-col gap-2">
+                            <span className="font-medium">
+                              {paymentTx.onChainConfirmed
+                                ? "✓ Payment confirmed on-chain. Unlocking track…"
+                                : "Transaction submitted. Confirming on-chain…"}
+                            </span>
+                            {solscanUrl && (
+                              <a
+                                href={solscanUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-emerald-300 hover:text-emerald-200 underline text-xs"
+                              >
+                                View on Solscan →
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {error && (
+                        <div className="mb-6 p-4 rounded-2xl bg-red-500/20 border border-red-500/30 text-red-200 text-sm backdrop-blur-md">
+                          ⚠️ {error}
+                        </div>
+                      )}
+
+                      {generatingMusic && progressStatus && (
+                        <div className="mb-8 p-6 rounded-3xl bg-black/20 border border-white/5 backdrop-blur-sm">
+                          <div className="flex justify-between text-sm font-medium mb-2 text-white/80">
+                            <span>{progressStatus}</span>
+                            <span>{progressPercent}%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-pink-500 to-violet-600 transition-all duration-300 shadow-[0_0_15px_#ec4899]"
+                              style={{ width: `${progressPercent}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={handleGenerateMusic}
+                        disabled={generatingMusic || (!lyrics?.trim() && !stylePrompt && !genre)}
+                        className="liquid-button liquid-button-primary w-full py-4 md:py-5 text-lg md:text-xl font-bold tracking-wide disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+                      >
+                        <span className="relative z-10 flex items-center justify-center gap-3">
+                          {generatingMusic ? (
+                            <>
+                              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                              <span>Creating Magic...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Generate Track</span>
+                              <svg className="w-5 h-5 md:w-6 md:h-6 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                            </>
+                          )}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Sidebar - History (Desktop: Static, Mobile: Fixed Overlay) */}
+                <aside className={`
                fixed inset-0 z-40 bg-black/95 backdrop-blur-xl transition-transform duration-300 md:translate-x-0 md:relative md:bg-gray-50/5 md:backdrop-blur-none md:z-auto md:w-80 md:flex md:flex-col md:border-l md:border-white/10
                ${showHistory ? 'translate-x-0' : 'translate-x-full'}
             `}>
-              {/* Mobile Header for History / Trending */}
-              <div className="md:hidden flex items-center justify-between p-4 border-b border-white/10 gap-2">
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRightPanelView("history")}
-                    className={`rounded-lg px-3 py-2 text-xs font-semibold ${rightPanelView === "history" ? "bg-white/20 text-white" : "text-white/60"}`}
-                  >
-                    History
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRightPanelView("trending")}
-                    className={`rounded-lg px-3 py-2 text-xs font-semibold flex items-center gap-1 ${rightPanelView === "trending" ? "bg-white/20 text-white" : "text-white/60"}`}
-                  >
-                    Trending
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRightPanelView("artists")}
-                    className={`rounded-lg px-3 py-2 text-xs font-semibold ${rightPanelView === "artists" ? "bg-white/20 text-white" : "text-white/60"}`}
-                  >
-                    Artists
-                  </button>
-                </div>
-                <button onClick={() => setShowHistory(false)} className="p-2 text-white/60">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-
-              <div className="hidden md:flex md:items-center md:gap-2 p-6 border-b border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setRightPanelView("history")}
-                  className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${rightPanelView === "history" ? "bg-white/20 text-white border border-white/20" : "bg-white/5 text-white/60 hover:text-white/80 border border-white/10"}`}
-                >
-                  History
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRightPanelView("trending")}
-                  className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors flex items-center gap-2 ${rightPanelView === "trending" ? "bg-white/20 text-white border border-white/20" : "bg-white/5 text-white/60 hover:text-white/80 border border-white/10"}`}
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                  Trending
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRightPanelView("artists")}
-                  className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors flex items-center gap-2 ${rightPanelView === "artists" ? "bg-white/20 text-white border border-white/20" : "bg-white/5 text-white/60 hover:text-white/80 border border-white/10"}`}
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                  Artists
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                {rightPanelView === "history" ? (
-                  library.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-white/20 space-y-4">
-                      <div className="w-16 h-16 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center">
-                        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
-                      </div>
-                      <p className="text-sm font-medium">No tracks generated yet</p>
+                  {/* Mobile Header for History / Trending */}
+                  <div className="md:hidden flex items-center justify-between p-4 border-b border-white/10 gap-2">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setRightPanelView("history")}
+                        className={`rounded-lg px-3 py-2 text-xs font-semibold ${rightPanelView === "history" ? "bg-white/20 text-white" : "text-white/60"}`}
+                      >
+                        History
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRightPanelView("trending")}
+                        className={`rounded-lg px-3 py-2 text-xs font-semibold flex items-center gap-1 ${rightPanelView === "trending" ? "bg-white/20 text-white" : "text-white/60"}`}
+                      >
+                        Trending
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRightPanelView("artists")}
+                        className={`rounded-lg px-3 py-2 text-xs font-semibold ${rightPanelView === "artists" ? "bg-white/20 text-white" : "text-white/60"}`}
+                      >
+                        Artists
+                      </button>
                     </div>
-                  ) : (
-                    library.map((track) => (
-                      <TrackCard
-                        key={track.id}
-                        track={track}
-                        artist={track.artistId ? artists.find((a) => a.id === track.artistId) ?? null : null}
-                        artists={artists}
-                        isUnlocked={unlockedTrackIds.has(track.id)}
-                        downloadSignature={unlockedSignatures[track.id]}
-                        isPaying={payingTrackId === track.id}
-                        onPay={() => handlePayForTrack(track.id)}
-                        onLoad={() => setLastGeneratedTracks([track])}
-                        onRemove={() => {
-                          setLibrary((prev) => prev.filter((t) => t.id !== track.id));
-                          setUnlockedTrackIds((prev) => {
-                            const next = new Set(prev);
-                            next.delete(track.id);
-                            return next;
-                          });
-                          setUnlockedSignatures((prev) => {
-                            const { [track.id]: _, ...rest } = prev;
-                            return rest;
-                          });
-                        }}
-                        onAssignArtist={(artistId) => handleAssignArtist(track.id, artistId)}
-                        onRename={(name) => handleRenameTrack(track.id, name)}
-                        onPlay={() => {
-                          fetch(`/api/track/${track.id}/listen`, { method: "POST" }).catch(() => {});
-                        }}
-                        previewSeconds={PREVIEW_SECONDS}
-                      />
-                    ))
-                  )
-                ) : rightPanelView === "artists" ? (
-                  trending.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-white/20 space-y-4 py-8">
-                      <svg className="w-12 h-12 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                      <p className="text-sm font-medium text-center">No artists yet</p>
-                      <p className="text-xs text-white/30 text-center max-w-[200px]">Artists with unlocked tracks appear here. Unlock a track and assign an artist to see them.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-1">Artists</p>
-                      <p className="text-xs text-white/50 mb-2">Click an artist to see their profile and songs.</p>
-                      <div className="space-y-2">
-                        {trending.map(({ artist }) =>
-                          artist.slug ? (
-                            <Link
-                              key={artist.id}
-                              href={`/artist/${artist.slug}`}
-                              className="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-white/5 border border-white/10 transition-colors hover:bg-white/10 hover:border-white/20"
-                            >
-                              <div className="w-10 h-10 rounded-full bg-white/20 overflow-hidden shrink-0">
-                                {artist.imageUrl ? (
-                                  <img src={artist.imageUrl} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-sm font-bold text-white/70">
-                                    {artist.name.slice(0, 1)}
-                                  </div>
-                                )}
-                              </div>
-                              <span className="text-sm font-medium text-white/90 truncate flex-1">{artist.name}</span>
-                              <span className="text-[10px] text-pink-400 shrink-0">View profile →</span>
-                            </Link>
-                          ) : (
-                            <button
-                              key={artist.id}
-                              type="button"
-                              onClick={() => {
-                                setShowProfile(true);
-                                setEditingSlugArtistId(artist.id);
-                                setEditingSlugValue(artist.slug ?? slugify(artist.name));
-                              }}
-                              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 bg-white/5 border border-white/10 transition-colors hover:bg-white/10 hover:border-white/20 text-left"
-                            >
-                              <div className="w-10 h-10 rounded-full bg-white/20 overflow-hidden shrink-0">
-                                {artist.imageUrl ? (
-                                  <img src={artist.imageUrl} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-sm font-bold text-white/70">
-                                    {artist.name.slice(0, 1)}
-                                  </div>
-                                )}
-                              </div>
-                              <span className="text-sm font-medium text-white/90 truncate flex-1">{artist.name}</span>
-                              <span className="text-[10px] text-pink-400 shrink-0">Set profile URL →</span>
-                            </button>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )
-                ) : trending.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-white/20 space-y-4 py-8">
-                    <svg className="w-12 h-12 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                    <p className="text-sm font-medium text-center">No trending yet</p>
-                    <p className="text-xs text-white/30 text-center max-w-[200px]">Unlocked tracks with an artist appear here. Unlock a track to see it trend.</p>
+                    <button onClick={() => setShowHistory(false)} className="p-2 text-white/60">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
                   </div>
-                ) : (
-                  <>
-                    <div className="space-y-6">
-                      {trending.map(({ artist, tracks: artistTracks, totalPlays }) => (
-                        <div key={artist.id} className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-                          <div className="flex items-center gap-3 p-3 border-b border-white/10">
-                            <div className="w-10 h-10 rounded-full bg-white/20 overflow-hidden shrink-0">
-                              {artist.imageUrl ? (
-                                <img src={artist.imageUrl} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-sm font-bold text-white/70">
-                                  {artist.name.slice(0, 1)}
-                                </div>
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-white truncate">{artist.name}</p>
-                              <p className="text-[10px] text-white/50">{totalPlays} plays</p>
-                            </div>
-                            {artist.slug && (
-                              <Link
-                                href={`/artist/${artist.slug}`}
-                                className="text-[10px] text-pink-400 hover:text-pink-300 shrink-0"
+
+                  <div className="hidden md:flex md:items-center md:gap-2 p-6 border-b border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setRightPanelView("history")}
+                      className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${rightPanelView === "history" ? "bg-white/20 text-white border border-white/20" : "bg-white/5 text-white/60 hover:text-white/80 border border-white/10"}`}
+                    >
+                      History
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRightPanelView("trending")}
+                      className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors flex items-center gap-2 ${rightPanelView === "trending" ? "bg-white/20 text-white border border-white/20" : "bg-white/5 text-white/60 hover:text-white/80 border border-white/10"}`}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                      Trending
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRightPanelView("artists")}
+                      className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors flex items-center gap-2 ${rightPanelView === "artists" ? "bg-white/20 text-white border border-white/20" : "bg-white/5 text-white/60 hover:text-white/80 border border-white/10"}`}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                      Artists
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                    {rightPanelView === "history" ? (
+                      library.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-white/20 space-y-4">
+                          <div className="w-16 h-16 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center">
+                            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
+                          </div>
+                          <p className="text-sm font-medium">No tracks generated yet</p>
+                        </div>
+                      ) : (
+                        <>
+                          {showWarning && (
+                            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 mb-4 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
+                              <div className="flex items-start gap-2">
+                                <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <p className="text-xs text-amber-200/90 leading-snug">
+                                  <strong>Warning:</strong> Download your songs to your device before refreshing. Songs are not saved permanently.
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => setShowWarning(false)}
+                                className="w-full py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-xs font-semibold text-amber-200 transition-colors"
                               >
-                                Profile
-                              </Link>
+                                I understand, close
+                              </button>
+                            </div>
+                          )}
+                          {library.map((track) => (
+                            <TrackCard
+                              key={track.id}
+                              track={track}
+                              artist={track.artistId ? artists.find((a) => a.id === track.artistId) ?? null : null}
+                              artists={artists}
+                              isUnlocked={unlockedTrackIds.has(track.id)}
+                              downloadSignature={unlockedSignatures[track.id]}
+                              isPaying={payingTrackId === track.id}
+                              onPay={() => handlePayForTrack(track.id)}
+                              onLoad={() => setLastGeneratedTracks([track])}
+                              onRemove={() => {
+                                setLibrary((prev) => prev.filter((t) => t.id !== track.id));
+                                setUnlockedTrackIds((prev) => {
+                                  const next = new Set(prev);
+                                  next.delete(track.id);
+                                  return next;
+                                });
+                                setUnlockedSignatures((prev) => {
+                                  const { [track.id]: _, ...rest } = prev;
+                                  return rest;
+                                });
+                              }}
+                              onAssignArtist={(artistId) => handleAssignArtist(track.id, artistId)}
+                              onRename={(name) => handleRenameTrack(track.id, name)}
+                              onPlay={() => {
+                                fetch(`/api/track/${track.id}/listen`, { method: "POST" }).catch(() => { });
+                              }}
+                              previewSeconds={PREVIEW_SECONDS}
+                            />
+                          ))
+                          }
+                        </>
+                      )
+                    ) : rightPanelView === "artists" ? (
+                      trending.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-white/20 space-y-4 py-8">
+                          <svg className="w-12 h-12 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                          <p className="text-sm font-medium text-center">No artists yet</p>
+                          <p className="text-xs text-white/30 text-center max-w-[200px]">Artists with unlocked tracks appear here. Unlock a track and assign an artist to see them.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-1">Artists</p>
+                          <p className="text-xs text-white/50 mb-2">Click an artist to see their profile and songs.</p>
+                          <div className="space-y-2">
+                            {trending.map(({ artist }) =>
+                              artist.slug ? (
+                                <Link
+                                  key={artist.id}
+                                  href={`/artist/${artist.slug}`}
+                                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-white/5 border border-white/10 transition-colors hover:bg-white/10 hover:border-white/20"
+                                >
+                                  <div className="w-10 h-10 rounded-full bg-white/20 overflow-hidden shrink-0">
+                                    {artist.imageUrl ? (
+                                      <img src={artist.imageUrl} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-sm font-bold text-white/70">
+                                        {artist.name.slice(0, 1)}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-sm font-medium text-white/90 truncate flex-1">{artist.name}</span>
+                                  <span className="text-[10px] text-pink-400 shrink-0">View profile →</span>
+                                </Link>
+                              ) : (
+                                <button
+                                  key={artist.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setShowProfile(true);
+                                    setEditingSlugArtistId(artist.id);
+                                    setEditingSlugValue(artist.slug ?? slugify(artist.name));
+                                  }}
+                                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 bg-white/5 border border-white/10 transition-colors hover:bg-white/10 hover:border-white/20 text-left"
+                                >
+                                  <div className="w-10 h-10 rounded-full bg-white/20 overflow-hidden shrink-0">
+                                    {artist.imageUrl ? (
+                                      <img src={artist.imageUrl} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-sm font-bold text-white/70">
+                                        {artist.name.slice(0, 1)}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-sm font-medium text-white/90 truncate flex-1">{artist.name}</span>
+                                  <span className="text-[10px] text-pink-400 shrink-0">Set profile URL →</span>
+                                </button>
+                              )
                             )}
                           </div>
-                          <ul className="p-2 space-y-1">
-                            {artistTracks.map((t) => (
-                              <li key={t.id} className="flex items-center gap-2 rounded-xl px-3 py-2 bg-white/5 hover:bg-white/10">
-                                <span className="text-xs text-white/90 truncate flex-1">{t.name}</span>
-                                <span className="text-[10px] text-white/40 shrink-0">{t.plays} plays</span>
-                                <audio
-                                  controls
-                                  className="h-7 w-24 shrink-0 opacity-90"
-                                  preload="metadata"
-                                  src={`/api/track/${t.id}/preview`}
-                                  onPlay={() => {
-                                    fetch(`/api/track/${t.id}/listen`, { method: "POST" }).catch(() => {});
-                                    setTrending((prev) =>
-                                      prev.map((item) =>
-                                        item.artist.id === artist.id
-                                          ? {
-                                              ...item,
-                                              tracks: item.tracks.map((tr) =>
-                                                tr.id === t.id ? { ...tr, plays: tr.plays + 1 } : tr
-                                              ),
-                                              totalPlays: item.totalPlays + 1,
-                                            }
-                                          : item
-                                      )
-                                    );
-                                  }}
-                                />
-                              </li>
-                            ))}
-                          </ul>
                         </div>
-                      ))}
-                    </div>
-                    <div className="pt-6 mt-6 border-t border-white/10">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-3 px-1">Artists</p>
-                      <p className="text-xs text-white/50 mb-3">Click an artist to see their profile and songs.</p>
-                      <div className="space-y-2">
-                        {trending.map(({ artist }) =>
-                          artist.slug ? (
-                            <Link
-                              key={artist.id}
-                              href={`/artist/${artist.slug}`}
-                              className="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-white/5 border border-white/10 transition-colors hover:bg-white/10 hover:border-white/20"
-                            >
-                              <div className="w-9 h-9 rounded-full bg-white/20 overflow-hidden shrink-0">
-                                {artist.imageUrl ? (
-                                  <img src={artist.imageUrl} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-xs font-bold text-white/70">
-                                    {artist.name.slice(0, 1)}
-                                  </div>
-                                )}
-                              </div>
-                              <span className="text-sm font-medium text-white/90 truncate flex-1">{artist.name}</span>
-                              <span className="text-[10px] text-pink-400 shrink-0">View profile →</span>
-                            </Link>
-                          ) : (
-                            <button
-                              key={artist.id}
-                              type="button"
-                              onClick={() => {
-                                setShowProfile(true);
-                                setEditingSlugArtistId(artist.id);
-                                setEditingSlugValue(artist.slug ?? slugify(artist.name));
-                              }}
-                              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 bg-white/5 border border-white/10 transition-colors hover:bg-white/10 hover:border-white/20 text-left"
-                            >
-                              <div className="w-9 h-9 rounded-full bg-white/20 overflow-hidden shrink-0">
-                                {artist.imageUrl ? (
-                                  <img src={artist.imageUrl} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-xs font-bold text-white/70">
-                                    {artist.name.slice(0, 1)}
-                                  </div>
-                                )}
-                              </div>
-                              <span className="text-sm font-medium text-white/90 truncate flex-1">{artist.name}</span>
-                              <span className="text-[10px] text-pink-400 shrink-0">Set profile URL →</span>
-                            </button>
-                          )
-                        )}
+                      )
+                    ) : trending.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-white/20 space-y-4 py-8">
+                        <svg className="w-12 h-12 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                        <p className="text-sm font-medium text-center">No trending yet</p>
+                        <p className="text-xs text-white/30 text-center max-w-[200px]">Unlocked tracks with an artist appear here. Unlock a track to see it trend.</p>
                       </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </aside>
+                    ) : (
+                      <>
+                        <div className="space-y-6">
+                          {trending.map(({ artist, tracks: artistTracks, totalPlays }) => (
+                            <div key={artist.id} className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+                              <div className="flex items-center gap-3 p-3 border-b border-white/10">
+                                <div className="w-10 h-10 rounded-full bg-white/20 overflow-hidden shrink-0">
+                                  {artist.imageUrl ? (
+                                    <img src={artist.imageUrl} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-sm font-bold text-white/70">
+                                      {artist.name.slice(0, 1)}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-semibold text-white truncate">{artist.name}</p>
+                                  <p className="text-[10px] text-white/50">{totalPlays} plays</p>
+                                </div>
+                                {artist.slug && (
+                                  <Link
+                                    href={`/artist/${artist.slug}`}
+                                    className="text-[10px] text-pink-400 hover:text-pink-300 shrink-0"
+                                  >
+                                    Profile
+                                  </Link>
+                                )}
+                              </div>
+                              <ul className="p-2 space-y-1">
+                                {artistTracks.map((t) => (
+                                  <li key={t.id} className="flex items-center gap-2 rounded-xl px-3 py-2 bg-white/5 hover:bg-white/10">
+                                    <span className="text-xs text-white/90 truncate flex-1">{t.name}</span>
+                                    <span className="text-[10px] text-white/40 shrink-0">{t.plays} plays</span>
+                                    <audio
+                                      controls
+                                      className="h-7 w-24 shrink-0 opacity-90"
+                                      preload="metadata"
+                                      src={`/api/track/${t.id}/preview`}
+                                      onPlay={() => {
+                                        fetch(`/api/track/${t.id}/listen`, { method: "POST" }).catch(() => { });
+                                        setTrending((prev) =>
+                                          prev.map((item) =>
+                                            item.artist.id === artist.id
+                                              ? {
+                                                ...item,
+                                                tracks: item.tracks.map((tr) =>
+                                                  tr.id === t.id ? { ...tr, plays: tr.plays + 1 } : tr
+                                                ),
+                                                totalPlays: item.totalPlays + 1,
+                                              }
+                                              : item
+                                          )
+                                        );
+                                      }}
+                                    />
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="pt-6 mt-6 border-t border-white/10">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-3 px-1">Artists</p>
+                          <p className="text-xs text-white/50 mb-3">Click an artist to see their profile and songs.</p>
+                          <div className="space-y-2">
+                            {trending.map(({ artist }) =>
+                              artist.slug ? (
+                                <Link
+                                  key={artist.id}
+                                  href={`/artist/${artist.slug}`}
+                                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-white/5 border border-white/10 transition-colors hover:bg-white/10 hover:border-white/20"
+                                >
+                                  <div className="w-9 h-9 rounded-full bg-white/20 overflow-hidden shrink-0">
+                                    {artist.imageUrl ? (
+                                      <img src={artist.imageUrl} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-xs font-bold text-white/70">
+                                        {artist.name.slice(0, 1)}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-sm font-medium text-white/90 truncate flex-1">{artist.name}</span>
+                                  <span className="text-[10px] text-pink-400 shrink-0">View profile →</span>
+                                </Link>
+                              ) : (
+                                <button
+                                  key={artist.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setShowProfile(true);
+                                    setEditingSlugArtistId(artist.id);
+                                    setEditingSlugValue(artist.slug ?? slugify(artist.name));
+                                  }}
+                                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 bg-white/5 border border-white/10 transition-colors hover:bg-white/10 hover:border-white/20 text-left"
+                                >
+                                  <div className="w-9 h-9 rounded-full bg-white/20 overflow-hidden shrink-0">
+                                    {artist.imageUrl ? (
+                                      <img src={artist.imageUrl} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-xs font-bold text-white/70">
+                                        {artist.name.slice(0, 1)}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-sm font-medium text-white/90 truncate flex-1">{artist.name}</span>
+                                  <span className="text-[10px] text-pink-400 shrink-0">Set profile URL →</span>
+                                </button>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </aside>
 
-          </div>
-          </>
+              </div>
+            </>
           )}
         </div>
       </main>
