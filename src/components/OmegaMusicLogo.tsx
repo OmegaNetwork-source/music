@@ -5,24 +5,37 @@ interface OmegaMusicLogoProps {
   size?: number;
 }
 
-/** Logo for Omega Music: equalizer bars (sound) — distinct from Apple Music’s note. */
+/**
+ * Omega Music logo: vinyl turntable (platter + tonearm).
+ */
 export function OmegaMusicLogo({ className = "", size = 32 }: OmegaMusicLogoProps) {
   return (
     <div
-      className={`flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg ring-2 ring-white/10 ${className}`}
+      className={`flex shrink-0 items-center justify-center rounded-2xl bg-black text-white ${className}`}
       style={{ width: size, height: size }}
     >
       <svg
-        viewBox="0 0 24 24"
-        fill="white"
-        className="opacity-95"
-        style={{ width: size * 0.6, height: size * 0.6 }}
+        viewBox="0 0 32 32"
+        fill="none"
+        className="shrink-0"
+        style={{ width: size * 0.7, height: size * 0.7 }}
       >
-        {/* Equalizer bars — suggests music without a note icon */}
-        <rect x="3" y="14" width="3" height="6" rx="1.5" />
-        <rect x="8" y="10" width="3" height="10" rx="1.5" />
-        <rect x="13" y="6" width="3" height="14" rx="1.5" />
-        <rect x="18" y="10" width="3" height="10" rx="1.5" />
+        {/* Turntable base */}
+        <rect x="4" y="8" width="24" height="18" rx="2" stroke="currentColor" strokeWidth="1.2" fill="none" />
+        {/* Platter / vinyl */}
+        <circle cx="16" cy="17" r="8" stroke="currentColor" strokeWidth="1.2" fill="none" />
+        <circle cx="16" cy="17" r="4" fill="currentColor" opacity={0.85} />
+        <circle cx="16" cy="17" r="1.5" fill="black" />
+        {/* Tonearm: pivot → arm → head */}
+        <circle cx="24" cy="10" r="1.2" fill="currentColor" />
+        <path
+          d="M24 10 L24 12.5 Q24 14 22 15 L18 16.5"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          fill="none"
+        />
+        <circle cx="18" cy="16.5" r="1" fill="currentColor" />
       </svg>
     </div>
   );

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getArtists, updateArtist } from "@/lib/trackStore";
+import { ensureStoreLoaded, persistStore, getArtists, updateArtist } from "@/lib/trackStore";
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await ensureStoreLoaded();
     const { id } = await params;
     const wallet = req.nextUrl.searchParams.get("wallet");
     if (!wallet?.trim()) {
@@ -38,6 +39,7 @@ export async function PATCH(
       ...(youtubeUrl !== undefined && { youtubeUrl: youtubeUrl ? String(youtubeUrl).trim() : undefined }),
       ...(websiteUrl !== undefined && { websiteUrl: websiteUrl ? String(websiteUrl).trim() : undefined }),
     });
+    await persistStore();
     return NextResponse.json({ success: true, artist });
   } catch (e) {
     console.error("Update artist error:", e);

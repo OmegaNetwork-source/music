@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTrack, incrementTrackPlay } from "@/lib/trackStore";
+import { ensureStoreLoaded, persistStore, getTrack, incrementTrackPlay } from "@/lib/trackStore";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  await ensureStoreLoaded();
   const { id } = await params;
   const track = id ? getTrack(id) : undefined;
   if (!track) {
@@ -14,5 +15,6 @@ export async function POST(
     );
   }
   const plays = incrementTrackPlay(id);
+  await persistStore();
   return NextResponse.json({ success: true, plays });
 }

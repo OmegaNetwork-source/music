@@ -1,8 +1,9 @@
 import path from "path";
 import fs from "fs";
 import { STORE_FILE_PATH } from "./dataDir";
+import * as storeRedis from "./storeRedis";
 
-export type TrackRecord = { name: string; audioUrl?: string; audioPath?: string };
+export type TrackRecord = { name: string; audioUrl?: string; audioPath?: string; blobUrl?: string; lyrics?: string };
 const tracks = new Map<string, TrackRecord>();
 const usedSignatures = new Map<string, string>();
 
@@ -26,8 +27,10 @@ const trackPlays = new Map<string, number>();
 
 const STORE_FILE = STORE_FILE_PATH;
 let loaded = false;
+const useRedis = typeof process.env.UPSTASH_REDIS_REST_URL === "string" && process.env.UPSTASH_REDIS_REST_URL.length > 0;
 
 function loadFromFile() {
+  if (useRedis) return; // Redis mode: use ensureStoreLoaded() in route
   if (loaded) return;
   try {
     const raw = fs.readFileSync(STORE_FILE, "utf-8");
@@ -69,6 +72,7 @@ function loadFromFile() {
 }
 
 function saveToFile() {
+  if (useRedis) return; // Redis mode: route must call persistStore() after mutate
   try {
     // Never overwrite store with empty tracks (e.g. after dev server restart / Fast Refresh cleared memory)
     if (tracks.size === 0 && fs.existsSync(STORE_FILE)) {
@@ -99,6 +103,39 @@ function saveToFile() {
   } catch (e) {
     console.error("[trackStore] saveToFile failed:", e);
   }
+}
+
+/** Call at start of each API route when using Redis (Vercel). No-op when using file. */
+export async function ensureStoreLoaded(): Promise<void> {
+  if (!useRedis) return;
+  const data = await storeRedis.loadFromRedis();
+  if (!data) return;
+  tracks.clear();
+  usedSignatures.clear();
+  artistsByWallet.clear();
+  assignments.clear();
+  artistLikes.clear();
+  trackPlays.clear();
+  if (data.tracks) for (const [id, v] of Object.entries(data.tracks)) tracks.set(id, v);
+  if (data.usedSignatures) for (const [sig, id] of Object.entries(data.usedSignatures)) usedSignatures.set(sig, id);
+  if (data.artists) for (const [wallet, list] of Object.entries(data.artists)) artistsByWallet.set(wallet, list);
+  if (data.assignments) for (const [wallet, map] of Object.entries(data.assignments)) assignments.set(wallet, new Map(Object.entries(map)));
+  if (data.artistLikes) for (const [id, count] of Object.entries(data.artistLikes)) artistLikes.set(id, count);
+  if (data.trackPlays) for (const [id, count] of Object.entries(data.trackPlays)) trackPlays.set(id, Number(count));
+}
+
+/** Call after any store mutation when using Redis. No-op when using file. */
+export async function persistStore(): Promise<void> {
+  if (!useRedis) return;
+  const snapshot: storeRedis.StoreSnapshot = {
+    tracks: Object.fromEntries(tracks),
+    usedSignatures: Object.fromEntries(usedSignatures),
+    artists: Object.fromEntries(artistsByWallet),
+    assignments: Object.fromEntries(Array.from(assignments.entries()).map(([w, m]) => [w, Object.fromEntries(m)])),
+    artistLikes: Object.fromEntries(artistLikes),
+    trackPlays: Object.fromEntries(trackPlays),
+  };
+  await storeRedis.saveToRedis(snapshot);
 }
 
 export function getArtists(wallet: string): Artist[] {
@@ -233,11 +270,32 @@ export function registerTrack(audioUrl: string, name: string): string {
 }
 
 /** Register a track that has audio saved locally (avoids expiring external URLs). */
-export function registerTrackWithLocalFile(id: string, name: string, audioFileName: string): void {
+export function registerTrackWithLocalFile(id: string, name: string, audioFileName: string, lyrics?: string): void {
   loaded = false; // force re-read from disk so we don't overwrite other workers' or parallel requests' tracks
   loadFromFile();
-  tracks.set(id, { name, audioPath: audioFileName });
+  tracks.set(id, { name, audioPath: audioFileName, ...(lyrics != null && lyrics !== "" && { lyrics }) });
   saveToFile();
+}
+
+/** Register a track with audio at a Vercel Blob URL (for serverless). */
+export function registerTrackWithBlobUrl(id: string, name: string, blobUrl: string, lyrics?: string): void {
+  loadFromFile();
+  tracks.set(id, { name, blobUrl, ...(lyrics != null && lyrics !== "" && { lyrics }) });
+  saveToFile();
+}
+
+export function setTrackLyrics(trackId: string, lyrics: string): boolean {
+  loadFromFile();
+  const t = tracks.get(trackId);
+  if (!t) return false;
+  tracks.set(trackId, { ...t, lyrics: lyrics.trim() || undefined });
+  saveToFile();
+  return true;
+}
+
+export function getTrackCount(): number {
+  loadFromFile();
+  return tracks.size;
 }
 
 export function getTrack(id: string): TrackRecord | undefined {

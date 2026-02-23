@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getArtistBySlug } from "@/lib/trackStore";
+import { ensureStoreLoaded, getArtistBySlug } from "@/lib/trackStore";
 
 export async function GET(req: NextRequest) {
+  await ensureStoreLoaded();
   const slug = req.nextUrl.searchParams.get("slug");
   if (!slug?.trim()) {
     return NextResponse.json(

@@ -86,7 +86,7 @@ export function ArtistProfileActions({
         type="button"
         onClick={handleLike}
         disabled={liked}
-        className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/10 text-sm font-semibold text-white/90 disabled:opacity-70 disabled:cursor-default transition-colors"
+        className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 bg-black/5 hover:bg-black/10 border border-black/10 text-sm font-semibold text-gray-900 disabled:opacity-70 disabled:cursor-default transition-colors"
       >
         <svg
           className="w-5 h-5"
@@ -107,7 +107,7 @@ export function ArtistProfileActions({
         type="button"
         onClick={handleShare}
         disabled={sharing}
-        className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/10 text-sm font-semibold text-white/90 disabled:opacity-70 transition-colors"
+        className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 bg-black/5 hover:bg-black/10 border border-black/10 text-sm font-semibold text-gray-900 disabled:opacity-70 transition-colors"
       >
         <svg
           className="w-5 h-5"

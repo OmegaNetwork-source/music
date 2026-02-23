@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getArtistById, getTracksByArtist, getTrack } from "@/lib/trackStore";
+import { ensureStoreLoaded, getArtistById, getTracksByArtist, getTrack } from "@/lib/trackStore";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  await ensureStoreLoaded();
   const { id } = await params;
   const artist = getArtistById(id);
   if (!artist) {

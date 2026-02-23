@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import fs from "fs";
-import { getTrack, isSignatureUsedForTrack, markSignatureUsed } from "@/lib/trackStore";
+import {
+  ensureStoreLoaded,
+  persistStore,
+  getTrack,
+  isSignatureUsedForTrack,
+  markSignatureUsed,
+} from "@/lib/trackStore";
 import { verifyUsdcPayment } from "@/lib/verifyPayment";
 import { AUDIO_DIR_PATH } from "@/lib/dataDir";
 
@@ -11,6 +17,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  await ensureStoreLoaded();
   const { id } = await params;
   const signature = req.nextUrl.searchParams.get("signature");
   if (!signature) {
@@ -34,6 +41,7 @@ export async function GET(
     });
   }
   markSignatureUsed(signature, id);
+  await persistStore();
 
   const filename = `${track.name.replace(/\s+/g, "_")}.mp3`;
   const headers: Record<string, string> = {
@@ -42,6 +50,17 @@ export async function GET(
   };
 
   try {
+    if (track.blobUrl) {
+      const res = await fetch(track.blobUrl, { method: "GET" });
+      if (!res.ok) {
+        return new NextResponse("Blob audio failed", { status: 502 });
+      }
+      const contentType = res.headers.get("content-type") || "audio/mpeg";
+      const contentLength = res.headers.get("content-length");
+      headers["Content-Type"] = contentType;
+      if (contentLength) headers["Content-Length"] = contentLength;
+      return new NextResponse(res.body, { headers });
+    }
     if (track.audioPath) {
       const filePath = path.join(AUDIO_DIR, track.audioPath);
       if (!fs.existsSync(filePath)) {

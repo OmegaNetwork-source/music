@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getArtistById, likeArtist, getArtistLikes } from "@/lib/trackStore";
+import { ensureStoreLoaded, persistStore, getArtistById, likeArtist, getArtistLikes } from "@/lib/trackStore";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  await ensureStoreLoaded();
   const { id } = await params;
   const artist = getArtistById(id);
   if (!artist) {
@@ -14,6 +15,7 @@ export async function POST(
     );
   }
   const count = likeArtist(id);
+  await persistStore();
   return NextResponse.json({ success: true, likes: count });
 }
 
@@ -21,6 +23,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  await ensureStoreLoaded();
   const { id } = await params;
   const artist = getArtistById(id);
   if (!artist) {

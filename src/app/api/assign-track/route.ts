@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { setAssignment, getArtists } from "@/lib/trackStore";
+import { ensureStoreLoaded, persistStore, setAssignment, getArtists } from "@/lib/trackStore";
 
 export async function POST(req: NextRequest) {
   try {
+    await ensureStoreLoaded();
     const body = await req.json();
     const { wallet, trackId, artistId } = body as {
       wallet?: string;
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
       }
     }
     setAssignment(wallet.trim(), trackId.trim(), artistId?.trim() || null);
+    await persistStore();
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error("Assign track error:", e);

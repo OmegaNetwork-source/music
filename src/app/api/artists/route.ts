@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getArtists, createArtist } from "@/lib/trackStore";
+import { ensureStoreLoaded, persistStore, getArtists, createArtist } from "@/lib/trackStore";
 
 export async function GET(req: NextRequest) {
+  await ensureStoreLoaded();
   const wallet = req.nextUrl.searchParams.get("wallet");
   if (!wallet?.trim()) {
     return NextResponse.json(
@@ -15,6 +16,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    await ensureStoreLoaded();
     const body = await req.json();
     const { wallet, name, imageUrl } = body as { wallet?: string; name?: string; imageUrl?: string };
     if (!wallet?.trim() || !name?.trim()) {
@@ -24,6 +26,7 @@ export async function POST(req: NextRequest) {
       );
     }
     const artist = createArtist(wallet.trim(), name.trim(), imageUrl?.trim() || undefined);
+    await persistStore();
     return NextResponse.json({ success: true, artist });
   } catch (e) {
     console.error("Create artist error:", e);
